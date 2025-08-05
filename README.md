@@ -10,6 +10,7 @@ A modern Next.js starter template with essential tools pre-configured for rapid 
 - **shadcn/ui** - Beautiful and accessible React components
 - **Prisma** - Type-safe database ORM
 - **Vercel Blob** - File storage solution
+- **AI SDK** - Vercel AI SDK for building AI-powered applications
 - **ESLint** - Code linting and formatting
 
 ## Getting Started
@@ -61,6 +62,7 @@ pnpm build
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Prisma](https://www.prisma.io/)
 - [Vercel Blob](https://vercel.com/docs/vercel-blob) [中文视频教程](https://www.bilibili.com/video/BV1Vm8mzDE9q/)
+- [AI SDK](https://ai-sdk.dev/docs/getting-started/) - Vercel AI SDK for building AI-powered applications
 - [shadcn/ui components](https://ui.shadcn.com/)
 
 Start building your next project! 🚀
