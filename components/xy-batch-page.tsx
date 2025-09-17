@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { XYBatchGenerator } from './xy-batch-generator';
 import { XYGridDisplay } from './xy-grid-display';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Grid, Lightbulb } from 'lucide-react';
 
 interface XYBatchConfig {
@@ -15,7 +15,7 @@ interface XYBatchConfig {
   yAxisNode: string; // 节点ID
   yAxisInput: string; // 输入字段名
   yAxisValues: string[];
-  defaultParams: Record<string, Record<string, any>>; // 其他节点的默认值
+  defaultParams: Record<string, Record<string, unknown>>; // 其他节点的默认值
 }
 
 interface XYBatchResult {

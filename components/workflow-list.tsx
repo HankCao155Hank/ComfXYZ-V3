@@ -15,7 +15,7 @@ interface Workflow {
   description?: string;
   curlRequest: string;
   workflowId: string;
-  nodeData: Record<string, any>;
+  nodeData: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   generations: Generation[];
@@ -33,8 +33,8 @@ interface Generation {
 interface WorkflowListProps {
   onCreateNew: () => void;
   onEdit: (workflow: Workflow) => void;
-  onGenerate: (workflowId: string, customParams?: any) => void;
-  onBatchGenerate: (workflowIds: string[], batchParams?: any) => void;
+  onGenerate: (workflowId: string, customParams?: Record<string, unknown>) => void;
+  onBatchGenerate: (workflowIds: string[], batchParams?: Record<string, unknown>) => void;
   onXYBatch?: () => void;
 }
 
@@ -108,7 +108,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
     if (selectedWorkflows.length === 0) return;
     
     const params = Object.fromEntries(
-      Object.entries(batchParams).filter(([_, value]) => value !== '' && value !== undefined)
+      Object.entries(batchParams).filter(([, value]) => value !== '' && value !== undefined)
     );
     
     onBatchGenerate(selectedWorkflows, Object.keys(params).length > 0 ? params : undefined);
@@ -121,7 +121,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
     setShowParameterForm(true);
   };
 
-  const handleParameterSubmit = async (data: any) => {
+  const handleParameterSubmit = async (data: Record<string, unknown>) => {
     if (selectedWorkflow) {
       await onGenerate(selectedWorkflow.id, data);
       setShowParameterForm(false);
@@ -267,9 +267,10 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
                 
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span>节点数量: {Object.keys(workflow.nodeData || {}).length}</span>
-                  {workflow.nodeData && Object.values(workflow.nodeData).some((node: any) => 
-                    node.inputs && Object.keys(node.inputs).includes('image')
-                  ) && (
+                  {workflow.nodeData && Object.values(workflow.nodeData).some((node: unknown) => {
+                    const nodeObj = node as { inputs?: Record<string, unknown> };
+                    return nodeObj.inputs && Object.keys(nodeObj.inputs).includes('image');
+                  }) && (
                     <span className="text-blue-600">包含图片输入节点</span>
                   )}
                 </div>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SmartImage } from './smart-image';
-import { RefreshCw, Grid, Download, Eye, CheckCircle, Clock, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
+import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface XYBatchResult {
   batchId: string;
@@ -47,7 +47,7 @@ interface XYGridDisplayProps {
   onRefresh?: () => void;
 }
 
-export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
+export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   const [generations, setGenerations] = useState<Record<string, Generation>>({});
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
     yValue: string;
     generation: Generation;
   } | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [exporting] = useState(false);
 
   const fetchGenerationStatuses = async () => {
     try {
@@ -206,18 +206,18 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
     }
   };
 
-  const getParameterLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      prompt: '提示词',
-      negativePrompt: '负向提示词',
-      width: '宽度',
-      height: '高度',
-      steps: '采样步数',
-      cfg: 'CFG Scale',
-      seed: '种子值'
-    };
-    return labels[type] || type;
-  };
+  // const getParameterLabel = (type: string) => {
+  //   const labels: Record<string, string> = {
+  //     prompt: '提示词',
+  //     negativePrompt: '负向提示词',
+  //     width: '宽度',
+  //     height: '高度',
+  //     steps: '采样步数',
+  //     cfg: 'CFG Scale',
+  //     seed: '种子值'
+  //   };
+  //   return labels[type] || type;
+  // };
 
   useEffect(() => {
     fetchGenerationStatuses();

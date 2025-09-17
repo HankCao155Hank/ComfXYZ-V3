@@ -89,7 +89,7 @@ export function ImageReveal({
             <strong>{workflowName}</strong> 已完成生成
           </p>
           <p className="text-xs text-green-600 mt-1 line-clamp-2">
-            "{prompt}"
+            &ldquo;{prompt}&rdquo;
           </p>
         </div>
 

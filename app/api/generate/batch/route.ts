@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 异步生成图像函数
-async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, any>) {
+async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, unknown>) {
   try {
     // 更新状态为运行中
     await prisma.generation.update({

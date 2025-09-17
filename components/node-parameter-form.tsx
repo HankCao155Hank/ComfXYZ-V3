@@ -12,24 +12,25 @@ interface NodeParameterFormProps {
     id: string;
     name: string;
     workflowId: string;
-    nodeData: Record<string, any>;
+    nodeData: Record<string, unknown>;
   };
-  onSubmit: (data: Record<string, any>) => Promise<void>;
+  onSubmit: (data: Record<string, unknown>) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
 }
 
 export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: NodeParameterFormProps) {
-  const [nodeParameters, setNodeParameters] = useState<Record<string, Record<string, any>>>({});
+  const [nodeParameters, setNodeParameters] = useState<Record<string, Record<string, unknown>>>({});
   const [uploadingImages, setUploadingImages] = useState<Record<string, boolean>>({});
   const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // 初始化节点参数
-    const initialParams: Record<string, Record<string, any>> = {};
-    Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, any]) => {
-      if (nodeData?.inputs) {
-        initialParams[nodeId] = { ...nodeData.inputs };
+    const initialParams: Record<string, Record<string, unknown>> = {};
+    Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+      const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
+      if (nodeDataObj?.inputs) {
+        initialParams[nodeId] = { ...nodeDataObj.inputs };
       }
     });
     setNodeParameters(initialParams);
@@ -39,18 +40,19 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
     e.preventDefault();
     
     // 构建最终的prompt数据
-    const promptData: Record<string, any> = {};
-    Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, any]) => {
+    const promptData: Record<string, unknown> = {};
+    Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+      const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
       promptData[nodeId] = {
-        ...nodeData,
-        inputs: nodeParameters[nodeId] || nodeData.inputs
+        ...nodeDataObj,
+        inputs: nodeParameters[nodeId] || nodeDataObj.inputs
       };
     });
     
     await onSubmit(promptData);
   };
 
-  const handleNodeParameterChange = (nodeId: string, inputKey: string, value: any) => {
+  const handleNodeParameterChange = (nodeId: string, inputKey: string, value: unknown) => {
     setNodeParameters(prev => ({
       ...prev,
       [nodeId]: {
@@ -98,8 +100,8 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
     }
   };
 
-  const renderInput = (nodeId: string, inputKey: string, value: any, type: string = 'text', nodeData: any) => {
-    const handleChange = (newValue: any) => {
+  const renderInput = (nodeId: string, inputKey: string, value: unknown, type: string = 'text', _nodeData: unknown) => {
+    const handleChange = (newValue: unknown) => {
       handleNodeParameterChange(nodeId, inputKey, newValue);
     };
 
@@ -116,7 +118,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
           <div className="flex items-center gap-2">
             <Input
               type="text"
-              value={value || ''}
+              value={String(value || '')}
               onChange={(e) => handleChange(e.target.value)}
               className="w-full"
               placeholder="图片路径或上传图片"
@@ -161,7 +163,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
         return (
           <Input
             type="number"
-            value={value}
+            value={String(value || '')}
             onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
             className="w-full"
           />
@@ -169,7 +171,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
       case 'textarea':
         return (
           <Textarea
-            value={value}
+            value={String(value || '')}
             onChange={(e) => handleChange(e.target.value)}
             className="w-full min-h-[80px]"
           />
@@ -189,7 +191,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
         return (
           <Input
             type="text"
-            value={value}
+            value={String(value || '')}
             onChange={(e) => handleChange(e.target.value)}
             className="w-full"
           />
@@ -197,7 +199,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
     }
   };
 
-  const getInputType = (key: string, value: any): string => {
+  const getInputType = (key: string, value: unknown): string => {
     if (typeof value === 'number') return 'number';
     if (typeof value === 'boolean') return 'boolean';
     if (key.toLowerCase().includes('text') || key.toLowerCase().includes('prompt')) return 'textarea';
@@ -210,24 +212,26 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
       <CardHeader>
         <CardTitle>设置节点参数</CardTitle>
         <CardDescription>
-          为工作流 "{workflow.name}" 设置各个节点的参数值
+          为工作流 &ldquo;{workflow.name}&rdquo; 设置各个节点的参数值
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            {Object.entries(workflow.nodeData).map(([nodeId, nodeData]: [string, any]) => (
+            {Object.entries(workflow.nodeData).map(([nodeId, nodeData]: [string, unknown]) => {
+              const nodeDataObj = nodeData as { class_type?: string; inputs?: Record<string, unknown> };
+              return (
               <Card key={nodeId} className="border-l-4 border-l-blue-500">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">节点 {nodeId}</CardTitle>
-                  {nodeData.class_type && (
-                    <CardDescription>类型: {nodeData.class_type}</CardDescription>
+                  {nodeDataObj.class_type && (
+                    <CardDescription>类型: {nodeDataObj.class_type}</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
-                  {nodeData.inputs && Object.keys(nodeData.inputs).length > 0 ? (
+                  {nodeDataObj.inputs && Object.keys(nodeDataObj.inputs).length > 0 ? (
                     <div className="grid gap-4">
-                      {Object.entries(nodeData.inputs).map(([inputKey, inputValue]: [string, any]) => (
+                      {Object.entries(nodeDataObj.inputs).map(([inputKey, inputValue]: [string, unknown]) => (
                         <div key={inputKey} className="space-y-2">
                           <label className="text-sm font-medium">
                             {inputKey}
@@ -247,7 +251,8 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex gap-4 pt-4">

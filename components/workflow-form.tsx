@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,12 +12,12 @@ interface WorkflowFormData {
   curlRequest: string;
 }
 
-interface WorkflowType {
-  key: string;
-  id: string;
-  name: string;
-  description: string;
-}
+// interface WorkflowType {
+//   key: string;
+//   id: string;
+//   name: string;
+//   description: string;
+// }
 
 interface WorkflowFormProps {
   initialData?: Partial<WorkflowFormData>;
@@ -110,7 +110,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel, isLoading }: Wor
     await onSubmit(formData);
   };
 
-  const handleChange = (field: keyof WorkflowFormData, value: any) => {
+  const handleChange = (field: keyof WorkflowFormData, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

@@ -35,7 +35,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
       }
       
       if (data.success && data.data.generations.length > 0) {
-        const generation = data.data.generations.find((g: any) => g.id === generationId);
+        const generation = data.data.generations.find((g: { id: string }) => g.id === generationId);
         if (generation) {
           setStatus(generation.status);
           
@@ -129,7 +129,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
       clearInterval(statusInterval);
       clearInterval(timeInterval);
     };
-  }, [generationId]);
+  }, [generationId, fetchStatus, startTime]);
 
   const statusInfo = getStatusInfo(status);
 

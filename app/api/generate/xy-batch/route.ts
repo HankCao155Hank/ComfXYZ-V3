@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 解析节点数据
-    const nodeData = (workflow as any).nodeData ? JSON.parse((workflow as any).nodeData) : {};
+    const nodeData = (workflow as { nodeData?: string }).nodeData ? JSON.parse((workflow as { nodeData: string }).nodeData) : {};
     console.log("工作流节点数据:", JSON.stringify(nodeData, null, 2));
     console.log("X轴配置:", { node: xAxisNode, input: xAxisInput, values: xAxisValues });
     console.log("Y轴配置:", { node: yAxisNode, input: yAxisInput, values: yAxisValues });
@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
         
         // 应用默认参数（覆盖原始值）
         Object.entries(defaultParams).forEach(([nodeId, inputs]) => {
-          if (combinedParams[nodeId] && (combinedParams[nodeId] as any).inputs) {
+          if (combinedParams[nodeId] && (combinedParams[nodeId] as { inputs?: Record<string, unknown> }).inputs) {
             Object.entries(inputs).forEach(([inputKey, value]) => {
-              if (inputKey in (combinedParams[nodeId] as any).inputs) {
-                (combinedParams[nodeId] as any).inputs[inputKey] = value;
+              if (inputKey in (combinedParams[nodeId] as { inputs: Record<string, unknown> }).inputs) {
+                (combinedParams[nodeId] as { inputs: Record<string, unknown> }).inputs[inputKey] = value;
               }
             });
           }
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
         
         // 应用X轴参数（验证后）
         if (validateNodeInput(xAxisNode, xAxisInput)) {
-          if (combinedParams[xAxisNode] && (combinedParams[xAxisNode] as any).inputs) {
-            (combinedParams[xAxisNode] as any).inputs[xAxisInput] = xValue;
+          if (combinedParams[xAxisNode] && (combinedParams[xAxisNode] as { inputs?: Record<string, unknown> }).inputs) {
+            (combinedParams[xAxisNode] as { inputs: Record<string, unknown> }).inputs[xAxisInput] = xValue;
           }
         } else {
           console.error(`跳过X轴参数设置: 节点 ${xAxisNode} 的输入 ${xAxisInput} 无效`);
@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
         
         // 应用Y轴参数（验证后）
         if (validateNodeInput(yAxisNode, yAxisInput)) {
-          if (combinedParams[yAxisNode] && (combinedParams[yAxisNode] as any).inputs) {
-            (combinedParams[yAxisNode] as any).inputs[yAxisInput] = yValue;
+          if (combinedParams[yAxisNode] && (combinedParams[yAxisNode] as { inputs?: Record<string, unknown> }).inputs) {
+            (combinedParams[yAxisNode] as { inputs: Record<string, unknown> }).inputs[yAxisInput] = yValue;
           }
         } else {
           console.error(`跳过Y轴参数设置: 节点 ${yAxisNode} 的输入 ${yAxisInput} 无效`);
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           yIndex,
           xValue,
           yValue,
-          workflowId: (workflow as any).workflowId,
+          workflowId: (workflow as { workflowId: string }).workflowId,
           params: combinedParams
         });
       }

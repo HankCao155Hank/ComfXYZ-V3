@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,7 +43,7 @@ export function ParameterForm({ workflow, onSubmit, onCancel, isLoading }: Param
     await onSubmit(formData);
   };
 
-  const handleChange = (field: keyof ParameterFormData, value: any) => {
+  const handleChange = (field: keyof ParameterFormData, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -55,7 +55,7 @@ export function ParameterForm({ workflow, onSubmit, onCancel, isLoading }: Param
       <CardHeader>
         <CardTitle>设置生成参数</CardTitle>
         <CardDescription>
-          为工作流 "{workflow.name}" 设置生成参数
+          为工作流 &ldquo;{workflow.name}&rdquo; 设置生成参数
         </CardDescription>
       </CardHeader>
       <CardContent>

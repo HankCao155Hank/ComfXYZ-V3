@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle, XCircle, Clock, Download, Eye, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, Clock, Sparkles } from 'lucide-react';
 import { SmartImage } from './smart-image';
 import { GenerationStatus } from './generation-status';
 import { ImageReveal } from './image-reveal';
@@ -127,22 +127,22 @@ export function RealTimeGeneration({
     }
   };
 
-  const downloadImage = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error('下载图片失败:', error);
-    }
-  };
+  // const downloadImage = async (url: string, filename: string) => {
+  //   try {
+  //     const response = await fetch(url);
+  //     const blob = await response.blob();
+  //     const downloadUrl = window.URL.createObjectURL(blob);
+  //     const link = document.createElement('a');
+  //     link.href = downloadUrl;
+  //     link.download = filename;
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //     window.URL.revokeObjectURL(downloadUrl);
+  //   } catch (error) {
+  //     console.error('下载图片失败:', error);
+  //   }
+  // };
 
   const formatDuration = (startedAt: string, completedAt?: string) => {
     const start = new Date(startedAt);
@@ -161,7 +161,7 @@ export function RealTimeGeneration({
       const interval = setInterval(fetchGenerations, 2000); // 每2秒刷新一次
       return () => clearInterval(interval);
     }
-  }, [generationId, autoRefresh]);
+  }, [generationId, autoRefresh, fetchGenerations]);
 
   if (generations.length === 0 && !loading) {
     return (
@@ -193,7 +193,7 @@ export function RealTimeGeneration({
       {generationId && (
         <GenerationStatus
           generationId={generationId}
-          onComplete={(blobUrl) => {
+          onComplete={() => {
             if (onComplete) {
               const generation = generations.find(g => g.id === generationId);
               if (generation) {

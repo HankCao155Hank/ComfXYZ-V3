@@ -61,7 +61,7 @@ export function SmartImage({
       sizes={sizes}
       priority={priority}
       onClick={onClick}
-      onError={(e) => {
+      onError={() => {
         console.warn('Next.js Image 组件加载失败，回退到普通 img 标签:', src);
         setUseNextImage(false);
       }}

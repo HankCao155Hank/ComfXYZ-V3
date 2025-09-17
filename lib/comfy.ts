@@ -107,7 +107,7 @@ interface WorkflowConfig {
   name: string;
   description: string;
   // 参数映射函数，将通用参数转换为工作流特定的prompt对象
-  buildPrompt: (params: GenerateImageParams) => Record<string, any>;
+  buildPrompt: (params: GenerateImageParams) => Record<string, unknown>;
 }
 
 // 预定义的工作流配置
@@ -188,7 +188,7 @@ export const getAvailableWorkflows = (): WorkflowConfig[] => {
 
 export const generateImage = async (
   workflowId: string,
-  promptData: Record<string, any>
+  promptData: Record<string, unknown>
 ): Promise<string> => {
   const apiKey = process.env.INFINI_AI_API_KEY;
   if (!apiKey) {
@@ -204,7 +204,7 @@ export const generateImage = async (
   }
 
   const API_URL = "https://cloud.infini-ai.com/api/maas/comfy_task_api/prompt";
-  const QUERY_URL = "https://cloud.infini-ai.com/api/maas/comfy_task_api/get_task_info";
+  // const QUERY_URL = "https://cloud.infini-ai.com/api/maas/comfy_task_api/get_task_info";
 
     const payload = {
       workflow_id: workflowId,

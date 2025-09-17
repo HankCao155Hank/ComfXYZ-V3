@@ -125,7 +125,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
     fetchGenerations();
     const interval = setInterval(fetchGenerations, 5000); // 每5秒刷新一次
     return () => clearInterval(interval);
-  }, [workflowId, limit]);
+  }, [workflowId, limit, fetchGenerations]);
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;

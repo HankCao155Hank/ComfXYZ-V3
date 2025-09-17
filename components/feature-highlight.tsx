@@ -74,8 +74,8 @@ export function FeatureHighlight() {
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-700">
             💡 <strong>使用提示：</strong> 
-            执行工作流后，系统会自动跳转到"实时生成"标签页。
-            想要对比不同参数效果？试试全新的"XY轴批量"功能！
+            执行工作流后，系统会自动跳转到&ldquo;实时生成&rdquo;标签页。
+            想要对比不同参数效果？试试全新的&ldquo;XY轴批量&rdquo;功能！
           </p>
         </div>
       </CardContent>

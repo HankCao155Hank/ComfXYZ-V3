@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Grid, Play, Settings, Upload, Image as ImageIcon } from 'lucide-react';
 
-interface NodeInput {
-  nodeId: string;
-  inputKey: string;
-  type: string;
-  value: any;
-}
+// interface NodeInput {
+//   nodeId: string;
+//   inputKey: string;
+//   type: string;
+//   value: unknown;
+// }
 
 interface XYBatchConfig {
   workflowId: string;
@@ -23,7 +23,7 @@ interface XYBatchConfig {
   yAxisNode: string; // 节点ID
   yAxisInput: string; // 输入字段名
   yAxisValues: string[];
-  defaultParams: Record<string, Record<string, any>>; // 其他节点的默认值
+  defaultParams: Record<string, Record<string, unknown>>; // 其他节点的默认值
 }
 
 interface Workflow {
@@ -31,7 +31,7 @@ interface Workflow {
   name: string;
   description?: string;
   workflowId: string;
-  nodeData: Record<string, any>;
+  nodeData: Record<string, unknown>;
 }
 
 interface XYBatchGeneratorProps {
@@ -55,13 +55,13 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   const [yAxisValues, setYAxisValues] = useState<string[]>(['']);
   
   // 默认参数
-  const [defaultParams, setDefaultParams] = useState<Record<string, Record<string, any>>>({});
+  const [defaultParams, setDefaultParams] = useState<Record<string, Record<string, unknown>>>({});
   
   // 图片上传状态
   const [uploadingImages, setUploadingImages] = useState<Record<string, boolean>>({});
   const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
 
-  const fetchWorkflows = async () => {
+  const fetchWorkflows = useCallback(async () => {
     try {
       const response = await fetch('/api/workflows');
       const data = await response.json();
@@ -76,15 +76,16 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     } catch (error) {
       console.error('获取工作流失败:', error);
     }
-  };
+  }, [selectedWorkflowId]);
 
   // 初始化默认参数
   const initializeDefaultParams = (workflow: Workflow) => {
-    const params: Record<string, Record<string, any>> = {};
+    const params: Record<string, Record<string, unknown>> = {};
     if (workflow.nodeData) {
-      Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, any]) => {
-        if (nodeData?.inputs) {
-          params[nodeId] = { ...nodeData.inputs };
+      Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+        const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
+        if (nodeDataObj?.inputs) {
+          params[nodeId] = { ...nodeDataObj.inputs };
         }
       });
     }
@@ -95,10 +96,11 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   const getAvailableNodeInputs = () => {
     if (!selectedWorkflow?.nodeData) return [];
     
-    const inputs: Array<{nodeId: string, inputKey: string, type: string, value: any}> = [];
-    Object.entries(selectedWorkflow.nodeData).forEach(([nodeId, nodeData]: [string, any]) => {
-      if (nodeData?.inputs && Object.keys(nodeData.inputs).length > 0) {
-        Object.entries(nodeData.inputs).forEach(([inputKey, value]: [string, any]) => {
+    const inputs: Array<{nodeId: string, inputKey: string, type: string, value: unknown}> = [];
+    Object.entries(selectedWorkflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+      const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
+      if (nodeDataObj?.inputs && Object.keys(nodeDataObj.inputs).length > 0) {
+        Object.entries(nodeDataObj.inputs).forEach(([inputKey, value]: [string, unknown]) => {
           inputs.push({
             nodeId,
             inputKey,
@@ -152,7 +154,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   };
 
   // 更新默认参数
-  const updateDefaultParam = (nodeId: string, inputKey: string, value: any) => {
+  const updateDefaultParam = (nodeId: string, inputKey: string, value: unknown) => {
     setDefaultParams(prev => ({
       ...prev,
       [nodeId]: {
@@ -207,8 +209,8 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   };
 
   // 获取输入字段的渲染组件
-  const renderInputField = (nodeId: string, inputKey: string, value: any, type: string, uploadType: 'default' | 'xAxis' | 'yAxis' = 'default', index?: number) => {
-    const handleChange = (newValue: any) => {
+  const renderInputField = (nodeId: string, inputKey: string, value: unknown, type: string, uploadType: 'default' | 'xAxis' | 'yAxis' = 'default', index?: number) => {
+    const handleChange = (newValue: unknown) => {
       updateDefaultParam(nodeId, inputKey, newValue);
     };
 
@@ -225,7 +227,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
           <div className="flex items-center gap-2">
             <Input
               type="text"
-              value={value || ''}
+              value={String(value || '')}
               onChange={(e) => handleChange(e.target.value)}
               className="w-full"
               placeholder="图片路径或上传图片"
@@ -268,7 +270,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     if (type === 'string') {
       return (
         <Textarea
-          value={value || ''}
+          value={String(value || '')}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={`输入 ${inputKey}`}
           className="min-h-[60px] text-xs"
@@ -278,7 +280,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       return (
         <Input
           type="number"
-          value={value || ''}
+          value={String(value || '')}
           onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
           placeholder={`输入 ${inputKey}`}
           step="any"
@@ -289,7 +291,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
-            checked={value || false}
+            checked={Boolean(value)}
             onChange={(e) => handleChange(e.target.checked)}
             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -329,11 +331,12 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       return `X轴节点 ${xAxisNode} 不存在于工作流中`;
     }
 
-    if (!selectedWorkflow.nodeData[xAxisNode].inputs) {
+    const xAxisNodeData = selectedWorkflow.nodeData[xAxisNode] as { inputs?: Record<string, unknown> };
+    if (!xAxisNodeData.inputs) {
       return `X轴节点 ${xAxisNode} 没有输入字段`;
     }
 
-    if (!(xAxisInput in selectedWorkflow.nodeData[xAxisNode].inputs)) {
+    if (!(xAxisInput in xAxisNodeData.inputs)) {
       return `X轴节点 ${xAxisNode} 没有输入字段 ${xAxisInput}`;
     }
 
@@ -342,11 +345,12 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       return `Y轴节点 ${yAxisNode} 不存在于工作流中`;
     }
 
-    if (!selectedWorkflow.nodeData[yAxisNode].inputs) {
+    const yAxisNodeData = selectedWorkflow.nodeData[yAxisNode] as { inputs?: Record<string, unknown> };
+    if (!yAxisNodeData.inputs) {
       return `Y轴节点 ${yAxisNode} 没有输入字段`;
     }
 
-    if (!(yAxisInput in selectedWorkflow.nodeData[yAxisNode].inputs)) {
+    if (!(yAxisInput in yAxisNodeData.inputs)) {
       return `Y轴节点 ${yAxisNode} 没有输入字段 ${yAxisInput}`;
     }
 
@@ -391,14 +395,14 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   };
 
   const getNodeInputLabel = (nodeId: string, inputKey: string) => {
-    const nodeData = selectedWorkflow?.nodeData?.[nodeId];
+    const nodeData = selectedWorkflow?.nodeData?.[nodeId] as { class_type?: string } | undefined;
     const nodeType = nodeData?.class_type || '未知';
     return `${nodeId} (${nodeType}) - ${inputKey}`;
   };
 
   useEffect(() => {
     fetchWorkflows();
-  }, []);
+  }, [fetchWorkflows]);
 
   const availableInputs = getAvailableNodeInputs();
 
@@ -448,15 +452,15 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
 
           {selectedWorkflow && (
             <>
-              {/* X轴配置 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">X 轴参数配置</h3>
-                
+          {/* X轴配置 */}
+          <div className="space-y-4">
+              <h3 className="text-lg font-semibold">X 轴参数配置</h3>
+            
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
+            <div className="space-y-2">
                     <label className="text-sm font-medium">X轴节点和输入</label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={`${xAxisNode}-${xAxisInput}`}
                       onChange={(e) => {
                         const [nodeId, inputKey] = e.target.value.split('-');
@@ -468,13 +472,13 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                       {availableInputs.map((input) => (
                         <option key={`${input.nodeId}-${input.inputKey}`} value={`${input.nodeId}-${input.inputKey}`}>
                           {getNodeInputLabel(input.nodeId, input.inputKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">X轴参数值</label>
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">X轴参数值</label>
                     <div className="space-y-2">
                       {xAxisValues.map((value, index) => (
                         <div key={index} className="space-y-2">
@@ -518,24 +522,24 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                                 disabled={xAxisValues.length <= 1}
                               >
                                 <Minus className="w-4 h-4" />
-                              </Button>
-                            </div>
+                </Button>
+              </div>
                           ) : (
                             <div className="flex gap-2">
-                              <Input
-                                value={value}
+                    <Input
+                      value={value}
                                 onChange={(e) => updateXAxisValues(index, e.target.value)}
-                                placeholder={`X轴值 ${index + 1}`}
-                                className="flex-1"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
+                      placeholder={`X轴值 ${index + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
                                 onClick={() => removeXAxisValue(index)}
                                 disabled={xAxisValues.length <= 1}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
                             </div>
                           )}
                           {xAxisInput === 'image' && uploadedImages[`xAxis-${xAxisNode}-${xAxisInput}-${index}`] && (
@@ -543,25 +547,25 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                               已上传: {uploadedImages[`xAxis-${xAxisNode}-${xAxisInput}-${index}`]}
                             </div>
                           )}
-                        </div>
-                      ))}
+                  </div>
+                ))}
                       <Button size="sm" variant="outline" onClick={addXAxisValue}>
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
 
-              {/* Y轴配置 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Y 轴参数配置</h3>
-                
+          {/* Y轴配置 */}
+          <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Y 轴参数配置</h3>
+            
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
+            <div className="space-y-2">
                     <label className="text-sm font-medium">Y轴节点和输入</label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       value={`${yAxisNode}-${yAxisInput}`}
                       onChange={(e) => {
                         const [nodeId, inputKey] = e.target.value.split('-');
@@ -573,13 +577,13 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                       {availableInputs.map((input) => (
                         <option key={`${input.nodeId}-${input.inputKey}`} value={`${input.nodeId}-${input.inputKey}`}>
                           {getNodeInputLabel(input.nodeId, input.inputKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Y轴参数值</label>
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Y轴参数值</label>
                     <div className="space-y-2">
                       {yAxisValues.map((value, index) => (
                         <div key={index} className="space-y-2">
@@ -623,24 +627,24 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                                 disabled={yAxisValues.length <= 1}
                               >
                                 <Minus className="w-4 h-4" />
-                              </Button>
-                            </div>
+                </Button>
+              </div>
                           ) : (
                             <div className="flex gap-2">
-                              <Input
-                                value={value}
+                    <Input
+                      value={value}
                                 onChange={(e) => updateYAxisValues(index, e.target.value)}
-                                placeholder={`Y轴值 ${index + 1}`}
-                                className="flex-1"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
+                      placeholder={`Y轴值 ${index + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
                                 onClick={() => removeYAxisValue(index)}
                                 disabled={yAxisValues.length <= 1}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
                             </div>
                           )}
                           {yAxisInput === 'image' && uploadedImages[`yAxis-${yAxisNode}-${yAxisInput}-${index}`] && (
@@ -648,8 +652,8 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                               已上传: {uploadedImages[`yAxis-${yAxisNode}-${yAxisInput}-${index}`]}
                             </div>
                           )}
-                        </div>
-                      ))}
+                  </div>
+                ))}
                       <Button size="sm" variant="outline" onClick={addYAxisValue}>
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -671,7 +675,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                   <div className="space-y-4">
                     {Object.entries(defaultParams).map(([nodeId, inputs]) => {
                       // 过滤掉被选为X轴或Y轴的特定字段
-                      const filteredInputs = Object.entries(inputs).filter(([inputKey, value]) => {
+                      const filteredInputs = Object.entries(inputs).filter(([inputKey]) => {
                         // 如果是X轴节点且字段是X轴输入，则跳过
                         if (xAxisNode === nodeId && xAxisInput === inputKey) {
                           return false;
@@ -708,77 +712,77 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                         </div>
                       );
                     })}
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
 
-              {/* 预览网格 */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">生成预览</h3>
-                <div className="p-4 bg-muted rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-3">
+          {/* 预览网格 */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">生成预览</h3>
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="text-sm text-muted-foreground mb-3">
                     将生成 <strong>{getTotalCombinations()}</strong> 张图片
-                  </div>
-                  
+              </div>
+              
                   {xAxisValues.filter(v => v.trim() !== '').length > 0 && yAxisValues.filter(v => v.trim() !== '').length > 0 && (
-                    <div className="grid gap-2" style={{
+              <div className="grid gap-2" style={{
                       gridTemplateColumns: `repeat(${xAxisValues.filter(v => v.trim() !== '').length}, 1fr)`,
                       gridTemplateRows: `repeat(${yAxisValues.filter(v => v.trim() !== '').length}, 1fr)`
-                    }}>
+              }}>
                       {yAxisValues.filter(v => v.trim() !== '').map((yValue, yIndex) =>
                         xAxisValues.filter(v => v.trim() !== '').map((xValue, xIndex) => (
-                          <div
-                            key={`${xIndex}-${yIndex}`}
-                            className="aspect-square bg-background border rounded p-1 text-xs flex flex-col justify-between"
-                          >
-                            <div className="text-center">
-                              <div className="font-mono text-[10px] text-blue-600">
-                                X: {xValue}
-                              </div>
-                              <div className="font-mono text-[10px] text-green-600">
-                                Y: {yValue}
-                              </div>
-                            </div>
-                            <div className="text-center text-[8px] text-muted-foreground">
-                              ({xIndex + 1}, {yIndex + 1})
-                            </div>
-                          </div>
-                        ))
-                      )}
+                    <div
+                      key={`${xIndex}-${yIndex}`}
+                      className="aspect-square bg-background border rounded p-1 text-xs flex flex-col justify-between"
+                    >
+                      <div className="text-center">
+                        <div className="font-mono text-[10px] text-blue-600">
+                          X: {xValue}
+                        </div>
+                        <div className="font-mono text-[10px] text-green-600">
+                          Y: {yValue}
+                        </div>
+                      </div>
+                      <div className="text-center text-[8px] text-muted-foreground">
+                        ({xIndex + 1}, {yIndex + 1})
+                      </div>
                     </div>
-                  )}
-                </div>
+                  ))
+                )}
               </div>
+                  )}
+            </div>
+          </div>
 
-              {/* 生成按钮 */}
-              <div className="flex gap-4 pt-4">
-                <Button 
-                  onClick={handleGenerate} 
+          {/* 生成按钮 */}
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={handleGenerate} 
                   disabled={!selectedWorkflowId || !xAxisNode || !xAxisInput || !yAxisNode || !yAxisInput || isGenerating}
-                  className="flex-1"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Settings className="w-4 h-4 mr-2 animate-spin" />
-                      生成中... ({getTotalCombinations()} 张图片)
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      开始 XY 轴批量生成 ({getTotalCombinations()} 张图片)
-                    </>
-                  )}
-                </Button>
-              </div>
+              className="flex-1"
+              size="lg"
+            >
+              {isGenerating ? (
+                <>
+                  <Settings className="w-4 h-4 mr-2 animate-spin" />
+                  生成中... ({getTotalCombinations()} 张图片)
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  开始 XY 轴批量生成 ({getTotalCombinations()} 张图片)
+                </>
+              )}
+            </Button>
+          </div>
 
-              {getTotalCombinations() > 16 && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-700">
-                    ⚠️ 注意：您将生成 {getTotalCombinations()} 张图片，这可能需要较长时间完成。
-                    建议先用较少的参数组合进行测试。
-                  </p>
-                </div>
+          {getTotalCombinations() > 16 && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-700">
+                ⚠️ 注意：您将生成 {getTotalCombinations()} 张图片，这可能需要较长时间完成。
+                建议先用较少的参数组合进行测试。
+              </p>
+            </div>
               )}
             </>
           )}

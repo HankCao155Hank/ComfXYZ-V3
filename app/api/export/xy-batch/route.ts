@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
               const imageId = workbook.addImage({
                 buffer: imageBuffer,
                 extension: 'png',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any);
               
               // 在对应单元格插入图片

@@ -16,7 +16,7 @@ interface Workflow {
   description?: string;
   curlRequest: string;
   workflowId: string;
-  nodeData: Record<string, any>;
+  nodeData: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,7 +42,7 @@ export default function Home() {
     }, 3000);
   };
 
-  const handleCreateWorkflow = async (data: any) => {
+  const handleCreateWorkflow = async (data: { name: string; description: string; curlRequest: string }) => {
     setFormLoading(true);
     try {
       const response = await fetch('/api/workflows', {
@@ -69,7 +69,7 @@ export default function Home() {
     }
   };
 
-  const handleUpdateWorkflow = async (data: any) => {
+  const handleUpdateWorkflow = async (data: { name: string; description: string; curlRequest: string }) => {
     if (!editingWorkflow) return;
     
     setFormLoading(true);
@@ -98,7 +98,7 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = async (workflowId: string, customParams?: any) => {
+  const handleGenerate = async (workflowId: string, customParams?: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -125,7 +125,7 @@ export default function Home() {
     }
   };
 
-  const handleBatchGenerate = async (workflowIds: string[], batchParams?: any) => {
+  const handleBatchGenerate = async (workflowIds: string[], batchParams?: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/generate/batch', {
         method: 'POST',
