@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  prompt      String
+  negativePrompt String?
+  width       Int      @default(1328)
+  height      Int      @default(1328)
+  steps       Int      @default(20)
+  cfg         Float    @default(2.5)
+  seed        Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联的生成任务
+  generations Generation[]
+}
+
+model Generation {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  status     String   // pending, running, completed, failed
+  blobUrl    String?  // Vercel Blob URL
+  errorMsg   String?
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  
+  // 生成参数（可能与工作流不同，用于记录实际使用的参数）
+  actualPrompt      String?
+  actualNegativePrompt String?
+  actualWidth       Int?
+  actualHeight      Int?
+  actualSteps       Int?
+  actualCfg         Float?
+  actualSeed        Int?
+}
