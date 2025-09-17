@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const total = await prisma.generation.count({ where });
 
     // 转换BigInt为字符串以便JSON序列化
-    const serializedGenerations = generations.map(gen => ({
+    const serializedGenerations = generations.map((gen: { actualSeed?: bigint | null }) => ({
       ...gen,
       actualSeed: gen.actualSeed ? gen.actualSeed.toString() : null
     }));
