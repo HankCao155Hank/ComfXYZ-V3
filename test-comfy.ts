@@ -8,7 +8,7 @@
  */
 
 import { config } from 'dotenv';
-import { generateQwenImage } from './lib/comfy';
+import { generateImage } from './lib/comfy';
 
 // 加载 .env 文件
 config();
@@ -98,7 +98,28 @@ async function runTest(testConfig: typeof TEST_CONFIGS[0], index: number): Promi
     log.info(`步数: ${testConfig.params.steps}`);
     
     const startTime = Date.now();
-    const blobUrl = await generateQwenImage(testConfig.params);
+    // 构造新的参数格式
+    const workflowId = "wf-dbruh5vcabfoc3jq"; // 使用一个测试工作流ID
+    const promptData = {
+      "3": {
+        "inputs": {
+          "text": testConfig.params.prompt,
+          "seed": testConfig.params.seed || Math.floor(Math.random() * 1000000000000),
+          "steps": testConfig.params.steps,
+          "cfg": testConfig.params.cfg
+        },
+        "class_type": "KSampler"
+      },
+      "4": {
+        "inputs": {
+          "width": testConfig.params.width,
+          "height": testConfig.params.height
+        },
+        "class_type": "EmptyLatentImage"
+      }
+    };
+    
+    const blobUrl = await generateImage(workflowId, promptData);
     const endTime = Date.now();
     const duration = Math.round((endTime - startTime) / 1000);
     

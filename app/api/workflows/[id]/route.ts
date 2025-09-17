@@ -6,8 +6,9 @@ const prisma = new PrismaClient();
 // GET - 获取单个工作流详情
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const workflow = await prisma.workflow.findUnique({
       where: { id: params.id },
@@ -48,8 +49,9 @@ export async function GET(
 // PUT - 更新工作流
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const body = await request.json();
     const {
@@ -101,8 +103,9 @@ export async function PUT(
 // DELETE - 删除工作流
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     await prisma.workflow.delete({
       where: { id: params.id }

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     if (format === 'excel') {
       // 生成Excel文件
-      const ExcelJS = require('exceljs');
+      const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('XY批量生成结果');
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
               const imageId = workbook.addImage({
                 buffer: imageBuffer,
                 extension: 'png',
-              });
+              } as any);
               
               // 在对应单元格插入图片
               worksheet.addImage(imageId, {

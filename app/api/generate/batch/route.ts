@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { generateQwenImage } from '@/lib/comfy';
+import { generateImage } from '@/lib/comfy';
 
 const prisma = new PrismaClient();
 
@@ -36,29 +36,21 @@ export async function POST(request: NextRequest) {
     // 为每个工作流创建生成记录
     const generations = [];
     for (const workflow of workflows) {
-      // 合并批量参数
-      const params = {
-        prompt: batchParams?.prompt || workflow.prompt,
-        negativePrompt: batchParams?.negativePrompt || workflow.negativePrompt || '',
-        width: batchParams?.width || workflow.width,
-        height: batchParams?.height || workflow.height,
-        steps: batchParams?.steps || workflow.steps,
-        cfg: batchParams?.cfg || workflow.cfg,
-        seed: batchParams?.seed || (workflow.seed ? Number(workflow.seed) : undefined) || Math.floor(Math.random() * 1000000000000),
-        workflowId: workflow.workflowType // 使用工作流类型
-      };
+      // 解析工作流的节点数据
+      const nodeData = workflow.nodeData ? JSON.parse(workflow.nodeData) : {};
+      
+      // 如果有批量参数，应用到节点数据中
+      let promptData = nodeData;
+      if (batchParams) {
+        // 这里可以根据需要合并批量参数到节点数据中
+        // 暂时使用原始的节点数据
+        promptData = nodeData;
+      }
 
       const generation = await prisma.generation.create({
         data: {
           workflowId: workflow.id,
-          status: 'pending',
-          actualPrompt: params.prompt,
-          actualNegativePrompt: params.negativePrompt,
-          actualWidth: params.width,
-          actualHeight: params.height,
-          actualSteps: params.steps,
-          actualCfg: params.cfg,
-          actualSeed: params.seed ? BigInt(params.seed) : null
+          status: 'pending'
         }
       });
 
@@ -66,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       // 异步执行生成任务（添加延迟避免API限制）
       setTimeout(() => {
-        generateImageAsync(generation.id, params);
+        generateImageAsync(generation.id, workflow.workflowId, promptData);
       }, generations.length * 2000); // 每个任务间隔2秒
     }
 
@@ -87,7 +79,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 异步生成图像函数
-async function generateImageAsync(generationId: string, params: any) {
+async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, any>) {
   try {
     // 更新状态为运行中
     await prisma.generation.update({
@@ -96,7 +88,7 @@ async function generateImageAsync(generationId: string, params: any) {
     });
 
     // 生成图像
-    const blobUrl = await generateQwenImage(params);
+    const blobUrl = await generateImage(workflowId, promptData);
 
     // 更新为完成状态
     await prisma.generation.update({

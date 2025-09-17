@@ -12,7 +12,7 @@ interface XYBatchConfig {
   yAxisNode: string; // 节点ID
   yAxisInput: string; // 输入字段名
   yAxisValues: string[];
-  defaultParams: Record<string, Record<string, any>>; // 其他节点的默认值
+  defaultParams: Record<string, Record<string, unknown>>; // 其他节点的默认值
 }
 
 // POST - XY轴批量生成
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 解析节点数据
-    const nodeData = workflow.nodeData ? JSON.parse(workflow.nodeData) : {};
+    const nodeData = (workflow as any).nodeData ? JSON.parse((workflow as any).nodeData) : {};
     console.log("工作流节点数据:", JSON.stringify(nodeData, null, 2));
     console.log("X轴配置:", { node: xAxisNode, input: xAxisInput, values: xAxisValues });
     console.log("Y轴配置:", { node: yAxisNode, input: yAxisInput, values: yAxisValues });
@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
         const xValue = xAxisValues[xIndex];
         const yValue = yAxisValues[yIndex];
         
-        // 构建参数组合 - 使用与单个工作流完全相同的格式
-        // 首先从工作流的原始nodeData开始，确保格式完全一致
-        const combinedParams = JSON.parse(JSON.stringify(nodeData));
+            // 构建参数组合 - 使用与单个工作流完全相同的格式
+            // 首先从工作流的原始nodeData开始，确保格式完全一致
+            const combinedParams: Record<string, Record<string, unknown>> = JSON.parse(JSON.stringify(nodeData));
         
         // 验证节点是否存在且有对应的输入字段
-        const validateNodeInput = (nodeId: string, inputKey: string, value: string) => {
+        const validateNodeInput = (nodeId: string, inputKey: string) => {
           if (!nodeData[nodeId]) {
             console.warn(`节点 ${nodeId} 不存在于工作流中`);
             return false;
@@ -80,28 +80,28 @@ export async function POST(request: NextRequest) {
         
         // 应用默认参数（覆盖原始值）
         Object.entries(defaultParams).forEach(([nodeId, inputs]) => {
-          if (combinedParams[nodeId] && combinedParams[nodeId].inputs) {
+          if (combinedParams[nodeId] && (combinedParams[nodeId] as any).inputs) {
             Object.entries(inputs).forEach(([inputKey, value]) => {
-              if (inputKey in combinedParams[nodeId].inputs) {
-                combinedParams[nodeId].inputs[inputKey] = value;
+              if (inputKey in (combinedParams[nodeId] as any).inputs) {
+                (combinedParams[nodeId] as any).inputs[inputKey] = value;
               }
             });
           }
         });
         
         // 应用X轴参数（验证后）
-        if (validateNodeInput(xAxisNode, xAxisInput, xValue)) {
-          if (combinedParams[xAxisNode] && combinedParams[xAxisNode].inputs) {
-            combinedParams[xAxisNode].inputs[xAxisInput] = xValue;
+        if (validateNodeInput(xAxisNode, xAxisInput)) {
+          if (combinedParams[xAxisNode] && (combinedParams[xAxisNode] as any).inputs) {
+            (combinedParams[xAxisNode] as any).inputs[xAxisInput] = xValue;
           }
         } else {
           console.error(`跳过X轴参数设置: 节点 ${xAxisNode} 的输入 ${xAxisInput} 无效`);
         }
         
         // 应用Y轴参数（验证后）
-        if (validateNodeInput(yAxisNode, yAxisInput, yValue)) {
-          if (combinedParams[yAxisNode] && combinedParams[yAxisNode].inputs) {
-            combinedParams[yAxisNode].inputs[yAxisInput] = yValue;
+        if (validateNodeInput(yAxisNode, yAxisInput)) {
+          if (combinedParams[yAxisNode] && (combinedParams[yAxisNode] as any).inputs) {
+            (combinedParams[yAxisNode] as any).inputs[yAxisInput] = yValue;
           }
         } else {
           console.error(`跳过Y轴参数设置: 节点 ${yAxisNode} 的输入 ${yAxisInput} 无效`);
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
           yIndex,
           xValue,
           yValue,
+          workflowId: (workflow as any).workflowId,
           params: combinedParams
         });
       }
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
       // 异步执行生成任务（添加延迟避免API限制）
       const delay = generations.length * 3000; // 每个任务间隔3秒
       setTimeout(() => {
-        generateImageAsync(generation.id, workflow.workflowId, combination.params);
+        generateImageAsync(generation.id, combination.workflowId, combination.params);
       }, delay);
     }
 
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 异步生成图像函数
-async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, any>) {
+async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, Record<string, unknown>>) {
   try {
     // 更新状态为运行中
     await prisma.generation.update({

@@ -289,7 +289,7 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-blue-50 text-blue-700">X轴</Badge>
-                <span className="text-sm font-medium">{getParameterLabel(batchResult.xAxisType)}</span>
+                <span className="text-sm font-medium">{batchResult.xAxisNode}.{batchResult.xAxisInput}</span>
               </div>
               <div className="text-xs text-muted-foreground">
                 {batchResult.generations.slice(0, batchResult.xAxisCount).map(gen => gen.xValue).join(', ')}
@@ -298,7 +298,7 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-green-50 text-green-700">Y轴</Badge>
-                <span className="text-sm font-medium">{getParameterLabel(batchResult.yAxisType)}</span>
+                <span className="text-sm font-medium">{batchResult.yAxisNode}.{batchResult.yAxisInput}</span>
               </div>
               <div className="text-xs text-muted-foreground">
                 {Array.from(new Set(batchResult.generations.map(gen => gen.yValue))).join(', ')}
@@ -342,7 +342,7 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
                 <div></div>
                 {Array.from(new Set(batchResult.generations.map(gen => gen.xValue))).map((xValue, index) => (
                   <div key={index} className="text-center p-2 bg-blue-50 rounded text-xs font-medium">
-                    <div className="text-blue-700">{getParameterLabel(batchResult.xAxisType)}</div>
+                    <div className="text-blue-700">{batchResult.xAxisNode}.{batchResult.xAxisInput}</div>
                     <div className="text-blue-600 font-mono">{xValue}</div>
                   </div>
                 ))}
@@ -356,7 +356,7 @@ export function XYGridDisplay({ batchResult, onRefresh }: XYGridDisplayProps) {
                   {/* Y轴标签 */}
                   <div className="flex items-center justify-center p-2 bg-green-50 rounded text-xs font-medium">
                     <div className="text-center">
-                      <div className="text-green-700">{getParameterLabel(batchResult.yAxisType)}</div>
+                      <div className="text-green-700">{batchResult.yAxisNode}.{batchResult.yAxisInput}</div>
                       <div className="text-green-600 font-mono">{yValue}</div>
                     </div>
                   </div>

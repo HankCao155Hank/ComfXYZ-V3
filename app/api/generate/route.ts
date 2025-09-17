@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 使用传入的节点参数数据
-    const promptData = customParams || (workflow.nodeData ? JSON.parse(workflow.nodeData) : {});
+    const promptData = customParams || ((workflow as any).nodeData ? JSON.parse((workflow as any).nodeData) : {});
 
     // 创建生成记录
     const generation = await prisma.generation.create({
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 异步执行生成任务
-    generateImageAsync(generation.id, workflow.workflowId, promptData);
+    generateImageAsync(generation.id, (workflow as any).workflowId, promptData);
 
     return NextResponse.json({ 
       success: true, 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 异步生成图像函数
-async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, any>) {
+async function generateImageAsync(generationId: string, workflowId: string, promptData: Record<string, Record<string, unknown>>) {
   try {
     // 更新状态为运行中
     await prisma.generation.update({
