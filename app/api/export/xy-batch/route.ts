@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // 创建生成记录映射
     const generationMap = new Map();
-    generations.forEach(gen => {
+    generations.forEach((gen: { id: string }) => {
       generationMap.set(gen.id, gen);
     });
 
