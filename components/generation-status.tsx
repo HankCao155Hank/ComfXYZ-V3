@@ -120,7 +120,12 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
   useEffect(() => {
     fetchStatus();
     
-    const statusInterval = setInterval(fetchStatus, 2000); // 每2秒检查状态
+    // 如果任务已完成或失败，停止轮询
+    if (status === 'completed' || status === 'failed') {
+      return;
+    }
+    
+    const statusInterval = setInterval(fetchStatus, 3000); // 每3秒检查状态，减少API调用频率
     const timeInterval = setInterval(() => {
       setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000); // 每秒更新时间
@@ -129,7 +134,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
       clearInterval(statusInterval);
       clearInterval(timeInterval);
     };
-  }, [generationId, fetchStatus, startTime]);
+  }, [generationId, fetchStatus, startTime, status]);
 
   const statusInfo = getStatusInfo(status);
 

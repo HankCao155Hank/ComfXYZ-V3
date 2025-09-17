@@ -100,7 +100,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
     }
   };
 
-  const renderInput = (nodeId: string, inputKey: string, value: unknown, type: string = 'text', _nodeData: unknown) => {
+  const renderInput = (nodeId: string, inputKey: string, value: unknown, type: string = 'text') => {
     const handleChange = (newValue: unknown) => {
       handleNodeParameterChange(nodeId, inputKey, newValue);
     };
@@ -242,7 +242,7 @@ export function NodeParameterForm({ workflow, onSubmit, onCancel, isLoading }: N
                               <span className="text-xs text-blue-600 ml-2">[图片上传]</span>
                             )}
                           </label>
-                          {renderInput(nodeId, inputKey, nodeParameters[nodeId]?.[inputKey] ?? inputValue, getInputType(inputKey, inputValue), nodeData)}
+                          {renderInput(nodeId, inputKey, nodeParameters[nodeId]?.[inputKey] ?? inputValue, getInputType(inputKey, inputValue))}
                         </div>
                       ))}
                     </div>

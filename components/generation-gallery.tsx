@@ -123,9 +123,20 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
 
   useEffect(() => {
     fetchGenerations();
-    const interval = setInterval(fetchGenerations, 5000); // 每5秒刷新一次
+    
+    // 智能轮询：如果有正在进行的任务，则频繁轮询；否则减少频率
+    const interval = setInterval(() => {
+      const hasRunningTasks = generations.some(gen => 
+        gen.status === 'pending' || gen.status === 'processing'
+      );
+      
+      if (hasRunningTasks) {
+        fetchGenerations();
+      }
+    }, 5000); // 统一5秒轮询，减少API调用频率
+    
     return () => clearInterval(interval);
-  }, [workflowId, limit, fetchGenerations]);
+  }, [workflowId, limit, fetchGenerations, generations]);
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;

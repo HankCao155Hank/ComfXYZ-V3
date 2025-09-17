@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { generateImage } from '@/lib/comfy';
-
-const prisma = new PrismaClient();
 
 interface XYBatchConfig {
   workflowId: string;

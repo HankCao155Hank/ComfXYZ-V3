@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { generateImage } from '@/lib/comfy';
-
-const prisma = new PrismaClient();
 
 // POST - 批量执行工作流生成
 export async function POST(request: NextRequest) {

@@ -695,7 +695,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                       return (
                         <div key={nodeId} className="border p-4 rounded-md space-y-3">
                           <h4 className="text-md font-semibold">
-                            节点 {nodeId} ({selectedWorkflow.nodeData[nodeId]?.class_type || '未知类型'})
+                            节点 {nodeId} ({(selectedWorkflow.nodeData[nodeId] as { class_type?: string })?.class_type || '未知类型'})
                             {(xAxisNode === nodeId || yAxisNode === nodeId) && (
                               <span className="text-xs text-blue-600 ml-2">
                                 {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}

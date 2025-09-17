@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ export function RealTimeGeneration({
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const fetchGenerations = async () => {
+  const fetchGenerations = useCallback(async () => {
     if (!autoRefresh && !generationId) return;
     
     try {
@@ -90,7 +90,7 @@ export function RealTimeGeneration({
     } finally {
       setLoading(false);
     }
-  };
+  }, [autoRefresh, generationId, onComplete]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -158,10 +158,34 @@ export function RealTimeGeneration({
     fetchGenerations();
     
     if (autoRefresh) {
-      const interval = setInterval(fetchGenerations, 2000); // 每2秒刷新一次
-      return () => clearInterval(interval);
+      let interval: NodeJS.Timeout;
+      
+      const startPolling = () => {
+        interval = setInterval(() => {
+          // 检查是否有正在进行的任务，如果没有则减少轮询频率
+          const hasRunningTasks = generations.some(gen => 
+            gen.status === 'pending' || gen.status === 'processing'
+          );
+          
+          if (hasRunningTasks) {
+            fetchGenerations();
+          } else {
+            // 如果没有运行中的任务，延长轮询间隔
+            clearInterval(interval);
+            setTimeout(startPolling, 10000); // 10秒后再开始轮询
+          }
+        }, 3000); // 有任务时每3秒刷新一次
+      };
+      
+      startPolling();
+      
+      return () => {
+        if (interval) {
+          clearInterval(interval);
+        }
+      };
     }
-  }, [generationId, autoRefresh, fetchGenerations]);
+  }, [generationId, autoRefresh, fetchGenerations, generations]);
 
   if (generations.length === 0 && !loading) {
     return (
