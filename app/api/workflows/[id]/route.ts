@@ -28,7 +28,7 @@ export async function GET(
     const serializedWorkflow = {
       ...workflow,
       nodeData: workflow.nodeData ? JSON.parse(workflow.nodeData) : null,
-      generations: workflow.generations?.map(gen => ({
+      generations: workflow.generations?.map((gen: { actualSeed?: bigint | null }) => ({
         ...gen,
         actualSeed: gen.actualSeed ? gen.actualSeed.toString() : null
       }))
