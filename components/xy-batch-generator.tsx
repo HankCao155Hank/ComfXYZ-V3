@@ -355,8 +355,8 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     }
 
     // 验证参数值
-    const validXValues = xAxisValues.filter(v => v.trim() !== '');
-    const validYValues = yAxisValues.filter(v => v.trim() !== '');
+    const validXValues = xAxisValues.filter((v: string) => v.trim() !== '');
+    const validYValues = yAxisValues.filter((v: string) => v.trim() !== '');
 
     if (validXValues.length === 0) {
       return '请设置至少一个X轴参数值';
@@ -380,10 +380,10 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       workflowId: selectedWorkflowId,
       xAxisNode,
       xAxisInput,
-      xAxisValues: xAxisValues.filter(v => v.trim() !== ''),
+      xAxisValues: xAxisValues.filter((v: string) => v.trim() !== ''),
       yAxisNode,
       yAxisInput,
-      yAxisValues: yAxisValues.filter(v => v.trim() !== ''),
+      yAxisValues: yAxisValues.filter((v: string) => v.trim() !== ''),
       defaultParams
     };
     
@@ -391,7 +391,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   };
 
   const getTotalCombinations = () => {
-    return xAxisValues.filter(v => v.trim() !== '').length * yAxisValues.filter(v => v.trim() !== '').length;
+    return xAxisValues.filter((v: string) => v.trim() !== '').length * yAxisValues.filter((v: string) => v.trim() !== '').length;
   };
 
   const getNodeInputLabel = (nodeId: string, inputKey: string) => {
@@ -427,7 +427,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
               value={selectedWorkflowId}
               onChange={(e) => {
                 setSelectedWorkflowId(e.target.value);
-                const workflow = workflows.find(w => w.id === e.target.value);
+                const workflow = workflows.find((w: { id: string }) => w.id === e.target.value);
                 if (workflow) {
                   setSelectedWorkflow(workflow);
                   initializeDefaultParams(workflow);
@@ -724,13 +724,13 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     将生成 <strong>{getTotalCombinations()}</strong> 张图片
               </div>
               
-                  {xAxisValues.filter(v => v.trim() !== '').length > 0 && yAxisValues.filter(v => v.trim() !== '').length > 0 && (
+                  {xAxisValues.filter((v: string) => v.trim() !== '').length > 0 && yAxisValues.filter((v: string) => v.trim() !== '').length > 0 && (
               <div className="grid gap-2" style={{
-                      gridTemplateColumns: `repeat(${xAxisValues.filter(v => v.trim() !== '').length}, 1fr)`,
-                      gridTemplateRows: `repeat(${yAxisValues.filter(v => v.trim() !== '').length}, 1fr)`
+                      gridTemplateColumns: `repeat(${xAxisValues.filter((v: string) => v.trim() !== '').length}, 1fr)`,
+                      gridTemplateRows: `repeat(${yAxisValues.filter((v: string) => v.trim() !== '').length}, 1fr)`
               }}>
-                      {yAxisValues.filter(v => v.trim() !== '').map((yValue, yIndex) =>
-                        xAxisValues.filter(v => v.trim() !== '').map((xValue, xIndex) => (
+                      {yAxisValues.filter((v: string) => v.trim() !== '').map((yValue, yIndex) =>
+                        xAxisValues.filter((v: string) => v.trim() !== '').map((xValue, xIndex) => (
                     <div
                       key={`${xIndex}-${yIndex}`}
                       className="aspect-square bg-background border rounded p-1 text-xs flex flex-col justify-between"

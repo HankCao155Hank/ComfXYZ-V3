@@ -99,7 +99,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
   const handleSelectWorkflow = (id: string) => {
     setSelectedWorkflows(prev => 
       prev.includes(id) 
-        ? prev.filter(wid => wid !== id)
+        ? prev.filter((wid: string) => wid !== id)
         : [...prev, id]
     );
   };

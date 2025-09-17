@@ -121,7 +121,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   };
 
   const getCompletedCount = () => {
-    return batchResult.generations.filter(gen => 
+    return batchResult.generations.filter((gen: { generationId: string }) => 
       getGenerationStatus(gen.generationId) === 'completed'
     ).length;
   };
@@ -132,7 +132,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   };
 
   const downloadAllImages = async () => {
-    const completedGenerations = batchResult.generations.filter(gen => {
+    const completedGenerations = batchResult.generations.filter((gen: { generationId: string }) => {
       const generation = generations[gen.generationId];
       return generation && generation.status === 'completed' && generation.blobUrl;
     });
@@ -292,7 +292,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                 <span className="text-sm font-medium">{batchResult.xAxisNode}.{batchResult.xAxisInput}</span>
               </div>
               <div className="text-xs text-muted-foreground">
-                {batchResult.generations.slice(0, batchResult.xAxisCount).map(gen => gen.xValue).join(', ')}
+                {batchResult.generations.slice(0, batchResult.xAxisCount).map((gen: { xValue: string }) => gen.xValue).join(', ')}
               </div>
             </div>
             <div className="space-y-2">
@@ -301,7 +301,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                 <span className="text-sm font-medium">{batchResult.yAxisNode}.{batchResult.yAxisInput}</span>
               </div>
               <div className="text-xs text-muted-foreground">
-                {Array.from(new Set(batchResult.generations.map(gen => gen.yValue))).join(', ')}
+                {Array.from(new Set(batchResult.generations.map((gen: { yValue: string }) => gen.yValue))).join(', ')}
               </div>
             </div>
           </div>
@@ -340,7 +340,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                 gridTemplateColumns: `80px repeat(${batchResult.xAxisCount}, 1fr)`
               }}>
                 <div></div>
-                {Array.from(new Set(batchResult.generations.map(gen => gen.xValue))).map((xValue, index) => (
+                {Array.from(new Set(batchResult.generations.map((gen: { xValue: string }) => gen.xValue))).map((xValue, index) => (
                   <div key={index} className="text-center p-2 bg-blue-50 rounded text-xs font-medium">
                     <div className="text-blue-700">{batchResult.xAxisNode}.{batchResult.xAxisInput}</div>
                     <div className="text-blue-600 font-mono">{xValue}</div>
@@ -349,7 +349,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
               </div>
 
               {/* 网格内容 */}
-              {Array.from(new Set(batchResult.generations.map(gen => gen.yValue))).map((yValue, yIndex) => (
+              {Array.from(new Set(batchResult.generations.map((gen: { yValue: string }) => gen.yValue))).map((yValue, yIndex) => (
                 <div key={yIndex} className="grid gap-2 mb-2" style={{
                   gridTemplateColumns: `80px repeat(${batchResult.xAxisCount}, 1fr)`
                 }}>
@@ -363,9 +363,9 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
 
                   {/* 图片网格 */}
                   {batchResult.generations
-                    .filter(gen => gen.yValue === yValue)
-                    .sort((a, b) => a.xIndex - b.xIndex)
-                    .map((gen) => {
+                    .filter((gen: { yValue: string }) => gen.yValue === yValue)
+                    .sort((a: { xIndex: number }, b: { xIndex: number }) => a.xIndex - b.xIndex)
+                    .map((gen: { generationId: string; xIndex: number; yIndex: number; xValue: string; yValue: string }) => {
                       const generation = generations[gen.generationId];
                       const status = getGenerationStatus(gen.generationId);
                       

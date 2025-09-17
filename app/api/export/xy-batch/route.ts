@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取所有生成记录的详细信息
-    const generationIds = batchResult.generations.map(gen => gen.generationId);
+    const generationIds = batchResult.generations.map((gen: { generationId: string }) => gen.generationId);
     const generations = await prisma.generation.findMany({
       where: {
         id: { in: generationIds }
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
     };
 
     // 准备表格数据 - 以X轴和Y轴为行列的图片网格
-    const xAxisValues = [...new Set(batchResult.generations.map(gen => gen.xValue))].sort();
-    const yAxisValues = [...new Set(batchResult.generations.map(gen => gen.yValue))].sort();
+    const xAxisValues = [...new Set(batchResult.generations.map((gen: { xValue: string }) => gen.xValue))].sort();
+    const yAxisValues = [...new Set(batchResult.generations.map((gen: { yValue: string }) => gen.yValue))].sort();
     
     // 创建图片数据映射
     const imageDataMap = new Map();
@@ -177,8 +177,8 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // 生成CSV文件 - 表格格式
-      const csvContent = tableData.map(row => 
-        row.map(cell => {
+      const csvContent = tableData.map((row: unknown[]) => 
+        row.map((cell: unknown) => {
           // 对于图片base64数据，显示简化信息
           if (typeof cell === 'string' && cell.startsWith('data:image/')) {
             return `"图片(${cell.length}字符)"`;

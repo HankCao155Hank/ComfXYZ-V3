@@ -15,10 +15,10 @@ export async function GET() {
     });
 
     // 转换JSON字符串为对象
-    const serializedWorkflows = workflows.map(workflow => ({
+    const serializedWorkflows = workflows.map((workflow: { nodeData?: string | null; generations: Array<{ actualSeed?: bigint | null }> }) => ({
       ...workflow,
       nodeData: workflow.nodeData ? JSON.parse(workflow.nodeData) : null,
-      generations: workflow.generations.map(gen => ({
+      generations: workflow.generations.map((gen: { actualSeed?: bigint | null }) => ({
         ...gen,
         actualSeed: gen.actualSeed ? gen.actualSeed.toString() : null
       }))

@@ -163,7 +163,7 @@ export function RealTimeGeneration({
       const startPolling = () => {
         interval = setInterval(() => {
           // 检查是否有正在进行的任务，如果没有则减少轮询频率
-          const hasRunningTasks = generations.some(gen => 
+          const hasRunningTasks = generations.some((gen: { status: string }) => 
             gen.status === 'pending' || gen.status === 'processing'
           );
           
@@ -219,7 +219,7 @@ export function RealTimeGeneration({
           generationId={generationId}
           onComplete={() => {
             if (onComplete) {
-              const generation = generations.find(g => g.id === generationId);
+              const generation = generations.find((g: { id: string }) => g.id === generationId);
               if (generation) {
                 onComplete(generation);
               }

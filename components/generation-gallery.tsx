@@ -126,7 +126,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
     
     // 智能轮询：如果有正在进行的任务，则频繁轮询；否则减少频率
     const interval = setInterval(() => {
-      const hasRunningTasks = generations.some(gen => 
+      const hasRunningTasks = generations.some((gen: { status: string }) => 
         gen.status === 'pending' || gen.status === 'processing'
       );
       
