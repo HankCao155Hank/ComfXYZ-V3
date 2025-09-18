@@ -186,7 +186,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
               <CardContent className="space-y-3">
                 {generation.status === 'completed' && generation.blobUrl && (
                   <div className="relative group">
-                  <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
+                  <div className="aspect-[4/3] relative overflow-hidden rounded-lg bg-muted">
                     <SmartImage
                       src={generation.blobUrl}
                       alt="Generated image"

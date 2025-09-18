@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle, XCircle, Clock, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, Clock, Sparkles, Trash2, Trash } from 'lucide-react';
 import { SmartImage } from './smart-image';
 import { GenerationStatus } from './generation-status';
 import { ImageReveal } from './image-reveal';
+import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 
 interface Generation {
   id: string;
@@ -35,16 +36,25 @@ interface RealTimeGenerationProps {
   generationId?: string;
   onComplete?: (generation: Generation) => void;
   autoRefresh?: boolean;
+  onDelete?: (generationId: string) => void;
 }
 
 export function RealTimeGeneration({ 
   generationId, 
   onComplete,
-  autoRefresh = true 
+  autoRefresh = true,
+  onDelete
 }: RealTimeGenerationProps) {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    generation: Generation | null;
+  }>({ isOpen: false, generation: null });
+  const [deleting, setDeleting] = useState(false);
+  const [selectedGenerations, setSelectedGenerations] = useState<string[]>([]);
+  const [showBatchActions, setShowBatchActions] = useState(false);
 
   const fetchGenerations = useCallback(async () => {
     if (!autoRefresh && !generationId) return;
@@ -154,6 +164,86 @@ export function RealTimeGeneration({
     return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
   };
 
+  const handleDeleteGeneration = async (generation: Generation) => {
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/generations/${generation.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // 删除成功，从列表中移除
+        setGenerations(prev => prev.filter(g => g.id !== generation.id));
+        setDeleteDialog({ isOpen: false, generation: null });
+        
+        // 调用父组件的删除回调
+        if (onDelete) {
+          onDelete(generation.id);
+        }
+      } else {
+        const error = await response.json();
+        console.error('删除失败:', error.error);
+        alert('删除失败: ' + error.error);
+      }
+    } catch (error) {
+      console.error('删除生成记录失败:', error);
+      alert('删除失败，请稍后重试');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedGenerations.length === 0) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/generations/batch-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          generationIds: selectedGenerations,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // 删除成功，从列表中移除
+        setGenerations(prev => prev.filter(g => !selectedGenerations.includes(g.id)));
+        setSelectedGenerations([]);
+        setShowBatchActions(false);
+        alert(`已删除 ${result.deletedCount} 条记录`);
+      } else {
+        const error = await response.json();
+        console.error('批量删除失败:', error.error);
+        alert('批量删除失败: ' + error.error);
+      }
+    } catch (error) {
+      console.error('批量删除生成记录失败:', error);
+      alert('批量删除失败，请稍后重试');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleGenerationSelection = (generationId: string) => {
+    setSelectedGenerations(prev => 
+      prev.includes(generationId) 
+        ? prev.filter(id => id !== generationId)
+        : [...prev, generationId]
+    );
+  };
+
+  const selectAllGenerations = () => {
+    setSelectedGenerations(generations.map(g => g.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedGenerations([]);
+  };
+
   useEffect(() => {
     fetchGenerations();
     
@@ -207,11 +297,70 @@ export function RealTimeGeneration({
           </h3>
           <p className="text-sm text-muted-foreground">实时跟踪图像生成进度和结果</p>
         </div>
-        <Button onClick={fetchGenerations} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          刷新
-        </Button>
+        <div className="flex items-center gap-2">
+          {generations.length > 0 && (
+            <Button 
+              onClick={() => setShowBatchActions(!showBatchActions)} 
+              variant="outline" 
+              size="sm"
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              批量删除
+            </Button>
+          )}
+          <Button onClick={fetchGenerations} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            刷新
+          </Button>
+        </div>
       </div>
+
+      {/* 批量操作栏 */}
+      {showBatchActions && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedGenerations.length === generations.length && generations.length > 0}
+                    onChange={selectedGenerations.length === generations.length ? clearSelection : selectAllGenerations}
+                    className="rounded"
+                  />
+                  <span className="text-sm">
+                    全选 ({selectedGenerations.length}/{generations.length})
+                  </span>
+                </div>
+                {selectedGenerations.length > 0 && (
+                  <span className="text-sm text-blue-700">
+                    已选择 {selectedGenerations.length} 条记录
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={clearSelection}
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedGenerations.length === 0}
+                >
+                  取消选择
+                </Button>
+                <Button
+                  onClick={handleBatchDelete}
+                  variant="destructive"
+                  size="sm"
+                  disabled={selectedGenerations.length === 0 || deleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleting ? "删除中..." : `删除选中 (${selectedGenerations.length})`}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 如果有特定的生成ID，显示专用状态组件 */}
       {generationId && (
@@ -233,18 +382,36 @@ export function RealTimeGeneration({
       )}
 
       {generations.map((generation) => (
-        <Card key={generation.id} className="overflow-hidden">
+        <Card key={generation.id} className={`overflow-hidden ${selectedGenerations.includes(generation.id) ? 'ring-2 ring-blue-500' : ''}`}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {showBatchActions && (
+                  <input
+                    type="checkbox"
+                    checked={selectedGenerations.includes(generation.id)}
+                    onChange={() => toggleGenerationSelection(generation.id)}
+                    className="rounded"
+                  />
+                )}
                 {getStatusIcon(generation.status)}
                 <CardTitle className="text-base">{generation.workflow.name}</CardTitle>
                 <Badge variant="outline" className={`text-white ${getStatusColor(generation.status)}`}>
                   {getStatusText(generation.status)}
                 </Badge>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {formatDuration(generation.startedAt, generation.completedAt)}
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-muted-foreground">
+                  {formatDuration(generation.startedAt, generation.completedAt)}
+                </div>
+                <Button
+                  onClick={() => setDeleteDialog({ isOpen: true, generation })}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
             <CardDescription>
@@ -348,13 +515,13 @@ export function RealTimeGeneration({
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedImage(null)}
         >
-          <div className="relative max-w-4xl max-h-full">
+          <div className="relative max-w-2xl max-h-[80vh]">
             <SmartImage
               src={selectedImage}
               alt="Preview"
-              width={1200}
-              height={1200}
-              className="max-w-full max-h-full object-contain"
+              width={800}
+              height={600}
+              className="max-w-full max-h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
             <Button
@@ -368,6 +535,17 @@ export function RealTimeGeneration({
           </div>
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, generation: null })}
+        onConfirm={() => deleteDialog.generation && handleDeleteGeneration(deleteDialog.generation)}
+        title="删除生成记录"
+        message="确定要删除这条生成记录吗？"
+        itemName={deleteDialog.generation?.workflow.name}
+        isLoading={deleting}
+      />
     </div>
   );
 }

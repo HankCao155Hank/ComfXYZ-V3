@@ -95,7 +95,7 @@ export function ImageReveal({
 
         {/* 图片展示区域 */}
         <div className="relative group">
-          <div className={`aspect-square relative overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 transition-all duration-1000 ${
+          <div className={`aspect-[4/3] max-w-md mx-auto relative overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 transition-all duration-1000 ${
             isRevealed ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           }`}>
             {isRevealed && (

@@ -372,7 +372,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                       return (
                         <div
                           key={gen.generationId}
-                          className={`aspect-square relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all hover:scale-105 ${getStatusColor(status)}`}
+                          className={`aspect-square relative overflow-hidden rounded-lg border-2 cursor-pointer transition-all hover:scale-105 max-w-24 max-h-24 ${getStatusColor(status)}`}
                           onClick={() => handleCellClick(gen)}
                         >
                           {generation && generation.blobUrl ? (
