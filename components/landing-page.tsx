@@ -15,7 +15,7 @@ import {
 
 export function LandingPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const features = [
     {

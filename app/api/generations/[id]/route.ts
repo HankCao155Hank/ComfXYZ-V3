@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // 删除单个生成记录
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function DELETE(
       );
     }
 
-    const generationId = params.id;
+    const { id: generationId } = await params;
     if (!generationId) {
       return NextResponse.json(
         { error: "缺少生成记录ID" },
@@ -66,8 +66,7 @@ export async function DELETE(
 
 // 批量删除生成记录
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
   try {
     const session = await getServerSession(authOptions);

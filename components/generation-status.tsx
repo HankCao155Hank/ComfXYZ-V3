@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -18,7 +18,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
   const [timeElapsed, setTimeElapsed] = useState<number>(0);
   const [startTime] = useState<number>(Date.now());
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const response = await fetch(`/api/generations?limit=10`);
       if (!response.ok) {
@@ -69,7 +69,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
     } catch (error) {
       console.error('获取生成状态失败:', error);
     }
-  };
+  }, [generationId, onComplete, onError, startTime]);
 
   const getStatusInfo = (status: string) => {
     switch (status) {

@@ -24,7 +24,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 构建删除条件
-    const whereCondition: any = {
+    const whereCondition: {
+      id: { in: string[] };
+      workflow: { userId: string };
+      status?: string;
+    } = {
       id: { in: generationIds },
       workflow: {
         userId: session.user.id // 只删除当前用户的工作流记录

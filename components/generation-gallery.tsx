@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const fetchGenerations = async () => {
+  const fetchGenerations = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (workflowId) params.set('workflowId', workflowId);
@@ -67,7 +67,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
     } finally {
       setLoading(false);
     }
-  };
+  }, [workflowId, limit]);
 
   const downloadImage = async (url: string, filename: string) => {
     try {

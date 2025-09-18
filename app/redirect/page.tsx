@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw } from "lucide-react";
 
 export default function RedirectPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {

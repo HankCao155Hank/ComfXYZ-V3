@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!user) {
+        if (!user || !user.password) {
           return null;
         }
 
@@ -48,10 +48,9 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
   },
   callbacks: {
-    async redirect({ url, baseUrl }) {
+    async redirect({ baseUrl }) {
       // 登录成功后重定向到 landing page
       return `${baseUrl}/landing`;
     },

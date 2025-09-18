@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, AlertTriangle } from "lucide-react";
@@ -38,7 +37,7 @@ export function DeleteConfirmationDialog({
             {message}
             {itemName && (
               <span className="block mt-2 font-medium text-foreground">
-                "{itemName}"
+                &ldquo;{itemName}&rdquo;
               </span>
             )}
           </CardDescription>

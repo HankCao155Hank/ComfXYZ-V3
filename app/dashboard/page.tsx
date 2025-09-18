@@ -30,7 +30,23 @@ function HomeContent() {
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
-  const [currentXYBatch, setCurrentXYBatch] = useState<any>(null);
+  const [currentXYBatch, setCurrentXYBatch] = useState<{
+    batchId: string;
+    totalCombinations: number;
+    xAxisCount: number;
+    yAxisCount: number;
+    xAxisNode: string;
+    xAxisInput: string;
+    yAxisNode: string;
+    yAxisInput: string;
+    generations: Array<{
+      generationId: string;
+      xIndex: number;
+      yIndex: number;
+      xValue: string;
+      yValue: string;
+    }>;
+  } | null>(null);
   const [isXYGenerating, setIsXYGenerating] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -171,7 +187,16 @@ function HomeContent() {
     setEditingWorkflow(null);
   };
 
-  const handleXYGenerate = async (batchData: any) => {
+  const handleXYGenerate = async (batchData: {
+    workflowId: string;
+    xAxisNode: string;
+    xAxisInput: string;
+    xAxisValues: string[];
+    yAxisNode: string;
+    yAxisInput: string;
+    yAxisValues: string[];
+    defaultParams: Record<string, Record<string, unknown>>;
+  }) => {
     setIsXYGenerating(true);
     try {
       const response = await fetch('/api/generate/xy-batch', {

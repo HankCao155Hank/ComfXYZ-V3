@@ -58,7 +58,7 @@ export default function SignUpPage() {
       } else {
         setError(data.error || "注册失败");
       }
-    } catch (error) {
+    } catch {
       setError("注册失败，请稍后重试");
     } finally {
       setIsLoading(false);
