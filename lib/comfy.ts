@@ -1,4 +1,5 @@
 import { put } from "@vercel/blob";
+import { cleanWorkflowImageReferences, validateWorkflowData } from "./workflow-utils";
 // 类型定义
 interface GenerateImageParams {
   prompt: string;
@@ -186,6 +187,7 @@ export const getAvailableWorkflows = (): WorkflowConfig[] => {
   return Object.values(WORKFLOW_CONFIGS);
 };
 
+
 export const generateImage = async (
   workflowId: string,
   promptData: Record<string, unknown>
@@ -203,12 +205,25 @@ export const generateImage = async (
     throw new Error("节点数据不能为空");
   }
 
+  // 验证工作流数据
+  const validation = validateWorkflowData(promptData);
+  if (!validation.isValid) {
+    throw new Error(`工作流数据验证失败: ${validation.errors.join(', ')}`);
+  }
+  
+  if (validation.warnings.length > 0) {
+    console.warn('工作流验证警告:', validation.warnings.join(', '));
+  }
+  
+  // 清理无效的图像引用
+  const cleanedPromptData = cleanWorkflowImageReferences(promptData);
+
   const API_URL = "https://cloud.infini-ai.com/api/maas/comfy_task_api/prompt";
   // const QUERY_URL = "https://cloud.infini-ai.com/api/maas/comfy_task_api/get_task_info";
 
     const payload = {
       workflow_id: workflowId,
-      prompt: promptData
+      prompt: cleanedPromptData
     };
 
     try {
@@ -273,6 +288,13 @@ export const generateImage = async (
     return url;
   } catch (error) {
     console.error("生成图像失败:", error);
+    
+    // 检查是否是图像下载失败的错误
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('downloadImageFromOss failed') || errorMessage.includes('NoSuchKey')) {
+      throw new Error(`图像生成失败: 输入图像文件不存在或已过期。请重新上传图像或检查工作流配置。原始错误: ${errorMessage}`);
+    }
+    
     throw error;
   }
 };
