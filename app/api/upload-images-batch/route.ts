@@ -74,14 +74,15 @@ export async function POST(request: NextRequest) {
         const result = await response.json();
         console.log(`文件 ${file.name} OSS上传响应:`, result);
         
-        // 检查不同的响应格式
+        // 检查不同的响应格式并转换为完整URL
         let imageKey = null;
         let imageUrl = null;
         
         if (result.code === 0 && result.data?.image_id) {
-          // 新格式：使用image_id
+          // 新格式：使用image_id，需要转换为完整URL
           imageKey = result.data.image_id;
-          imageUrl = result.data.image_id; // 使用image_id作为URL
+          // 将image_id转换为完整的可访问URL
+          imageUrl = `https://cloud.infini-ai.com/${result.data.image_id}`;
         } else if (result.success && result.data?.key) {
           // 旧格式
           imageKey = result.data.key;
