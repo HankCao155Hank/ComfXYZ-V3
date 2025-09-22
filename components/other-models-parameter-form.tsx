@@ -29,10 +29,11 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
     provider: (workflow.nodeData.provider as string) || '',
     temperature: (workflow.nodeData.temperature as number) || 0.9,
     topK: (workflow.nodeData.topK as number) || 40,
-    topP: (workflow.nodeData.topP as number) || 0.95
+    topP: (workflow.nodeData.topP as number) || 0.95,
+    image_urls: (workflow.nodeData.image_urls as string[]) || []
   });
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -63,9 +64,7 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
     } else if (['qwen_image', 'doubao_seedream'].includes(formData.provider)) {
       submitData.size = formData.size;
     } else if (formData.provider === 'nano_banana') {
-      submitData.temperature = formData.temperature;
-      submitData.topK = formData.topK;
-      submitData.topP = formData.topP;
+      submitData.image_urls = formData.image_urls;
     }
 
     await onSubmit(submitData);
@@ -185,39 +184,19 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
           {formData.provider === 'nano_banana' && (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Temperature (0-2)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  value={formData.temperature}
-                  onChange={(e) => handleChange('temperature', parseFloat(e.target.value) || 0.9)}
-                  placeholder="0.9"
+                <label className="text-sm font-medium">输入图像URLs (每行一个)</label>
+                <Textarea
+                  value={formData.image_urls.join('\n')}
+                  onChange={(e) => {
+                    const urls = e.target.value.split('\n').filter(url => url.trim());
+                    handleChange('image_urls', urls);
+                  }}
+                  placeholder="请输入图像URL，每行一个&#10;例如：&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
+                  rows={4}
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Top K (1-40)</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="40"
-                  value={formData.topK}
-                  onChange={(e) => handleChange('topK', parseInt(e.target.value) || 40)}
-                  placeholder="40"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Top P (0-1)</label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={formData.topP}
-                  onChange={(e) => handleChange('topP', parseFloat(e.target.value) || 0.95)}
-                  placeholder="0.95"
-                />
+                <p className="text-xs text-gray-500">
+                  支持多个图像URL，每行输入一个。至少需要一个图像URL。
+                </p>
               </div>
             </>
           )}

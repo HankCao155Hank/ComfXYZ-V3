@@ -13,6 +13,7 @@ export interface ImageGenerationParams {
   temperature?: number;
   topK?: number;
   topP?: number;
+  image_urls?: string[];
 }
 
 // 统一的返回结果类型
@@ -33,6 +34,7 @@ const ImageGenerationInputSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   topK: z.number().min(1).max(40).optional(),
   topP: z.number().min(0).max(1).optional(),
+  image_urls: z.array(z.string().url()).optional(),
 });
 
 // 支持的模型配置
@@ -110,9 +112,7 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
 
     // 为 Nano Banana 添加特殊参数
     if (modelName === "nano-banana") {
-      generatorParams.temperature = validatedParams.temperature;
-      generatorParams.topK = validatedParams.topK;
-      generatorParams.topP = validatedParams.topP;
+      generatorParams.image_urls = validatedParams.image_urls;
     }
     
     const result = await modelConfig.generator(generatorParams);

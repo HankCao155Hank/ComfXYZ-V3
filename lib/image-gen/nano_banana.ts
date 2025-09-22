@@ -1,46 +1,15 @@
 "use server";
 
 import { z } from "zod";
-import { getOSSStore } from "@/lib/oss";
-import { v4 as uuidv4 } from "uuid";
 
 // 类型定义
 interface NanoBananaRequest {
-  contents: Array<{
-    role: "user";
-    parts: Array<{
-      text: string;
-    }>;
-  }>;
-  generationConfig?: {
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-    maxOutputTokens?: number;
-  };
-  safetySettings?: Array<{
-    category: string;
-    threshold: string;
-  }>;
+  prompt: string;
+  image_urls: string[];
 }
 
 interface NanoBananaResponse {
-  candidates: Array<{
-    content: {
-      parts: Array<{
-        inlineData?: {
-          data: string;
-          mimeType: string;
-        };
-      }>;
-    };
-    finishReason: string;
-  }>;
-  usageMetadata: {
-    promptTokenCount: number;
-    candidatesTokenCount: number;
-    totalTokenCount: number;
-  };
+  image_urls: string[];
 }
 
 interface NanoBananaError {
@@ -54,14 +23,11 @@ interface NanoBananaError {
 // 输入参数验证
 const NanoBananaInputSchema = z.object({
   prompt: z.string().min(1).max(1000, "提示词不能超过1000字符"),
-  negative_prompt: z.string().max(500, "反向提示词不能超过500字符").optional(),
-  temperature: z.number().min(0).max(2).optional(),
-  topK: z.number().min(1).max(40).optional(),
-  topP: z.number().min(0).max(1).optional(),
+  image_urls: z.array(z.string().url()).min(1, "至少需要一张输入图像"),
 });
 
 // API 配置
-const NANO_BANANA_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const NANO_BANANA_API_URL = "https://api.ppinfra.com/v3/gemini-2.5-flash-image-preview-image-edit";
 
 /**
  * 生成图像并上传到 OSS
@@ -70,10 +36,7 @@ const NANO_BANANA_API_URL = "https://generativelanguage.googleapis.com/v1beta/mo
  */
 export async function generateNanoBananaImage(params: {
   prompt: string;
-  negative_prompt?: string;
-  temperature?: number;
-  topK?: number;
-  topP?: number;
+  image_urls: string[];
 }): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
     // 验证输入参数
@@ -85,48 +48,23 @@ export async function generateNanoBananaImage(params: {
       throw new Error("GOOGLE_AI_API_KEY 环境变量未配置");
     }
 
-    // 构建完整的提示词（包含negative_prompt）
-    let fullPrompt = validatedParams.prompt;
-    if (validatedParams.negative_prompt) {
-      fullPrompt += `, avoid: ${validatedParams.negative_prompt}`;
-    }
-
     // 构建请求体
     const requestBody: NanoBananaRequest = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: fullPrompt }
-          ]
-        }
-      ],
-      generationConfig: {
-        ...(validatedParams.temperature && { temperature: validatedParams.temperature }),
-        ...(validatedParams.topK && { topK: validatedParams.topK }),
-        ...(validatedParams.topP && { topP: validatedParams.topP }),
-        maxOutputTokens: 8192
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-      ]
+      prompt: validatedParams.prompt,
+      image_urls: validatedParams.image_urls
     };
 
-    console.log("🚀 开始调用 Nano Banana API:", {
+    console.log("🚀 开始调用 Gemini Nano Banana API:", {
       prompt: validatedParams.prompt,
-      temperature: requestBody.generationConfig?.temperature,
-      topK: requestBody.generationConfig?.topK,
-      topP: requestBody.generationConfig?.topP
+      image_count: validatedParams.image_urls.length
     });
 
-    // 调用 Nano Banana API
-    const response = await fetch(`${NANO_BANANA_API_URL}?key=${apiKey}`, {
+    // 调用 Gemini Nano Banana API
+    const response = await fetch(NANO_BANANA_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify(requestBody)
     });
@@ -137,42 +75,28 @@ export async function generateNanoBananaImage(params: {
     }
 
     const result: NanoBananaResponse = await response.json();
-    console.log("✅ Nano Banana API 调用成功:", {
-      finish_reason: result.candidates[0]?.finishReason,
-      usage: result.usageMetadata
+    console.log("✅ Gemini Nano Banana API 调用成功:", {
+      generated_images: result.image_urls.length
     });
 
-    // 获取图像数据
-    const imagePart = result.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
-    if (!imagePart?.inlineData) {
-      throw new Error("API 响应中未找到图像数据");
+    // 返回第一个生成的图像URL
+    if (result.image_urls && result.image_urls.length > 0) {
+      const imageUrl = result.image_urls[0];
+      console.log("✅ 图像生成完成:", {
+        image_url: imageUrl
+      });
+
+      return {
+        success: true,
+        url: imageUrl
+      };
+    } else {
+      throw new Error("API 响应中未找到生成的图像");
     }
-
-    const { data: imageData, mimeType } = imagePart.inlineData;
-    
-    // 将 base64 数据转换为 Buffer
-    const imageBuffer = Buffer.from(imageData, 'base64');
-
-    console.log("☁️ 开始上传到 OSS");
-
-    // 上传到 OSS
-    const ossStore = getOSSStore();
-    const fileExtension = mimeType === 'image/png' ? 'png' : 'jpg';
-    const ossFileName = `nano-banana-images/${uuidv4()}.${fileExtension}`;
-    const ossResult = await ossStore.put(ossFileName, imageBuffer);
-
-    console.log("✅ 图像生成和上传完成:", {
-      oss_url: ossResult.url
-    });
-
-    return {
-      success: true,
-      url: ossResult.url
-    };
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "未知错误";
-    console.error("❌ Nano Banana 生成失败:", errorMessage);
+    console.error("❌ Gemini Nano Banana 生成失败:", errorMessage);
     
     return {
       success: false,
@@ -184,24 +108,19 @@ export async function generateNanoBananaImage(params: {
 /**
  * 批量生成图像
  * @param prompts 提示词数组
- * @param options 通用选项
+ * @param imageUrls 输入图像URL数组
  * @returns 返回生成结果数组
  */
 export async function generateNanoBananaImagesBatch(
   prompts: string[],
-  options: {
-    negative_prompt?: string;
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-  } = {}
+  imageUrls: string[]
 ): Promise<Array<{ prompt: string; success: boolean; url?: string; error?: string }>> {
   const results = [];
   
   for (const prompt of prompts) {
     const result = await generateNanoBananaImage({
       prompt,
-      ...options
+      image_urls: imageUrls
     });
     
     results.push({
@@ -220,13 +139,13 @@ export async function generateNanoBananaImagesBatch(
  * 获取支持的参数配置
  */
 export async function getSupportedConfig(): Promise<{
-  temperature: { min: number; max: number; default: number };
-  topK: { min: number; max: number; default: number };
-  topP: { min: number; max: number; default: number };
+  maxImageUrls: number;
+  minImageUrls: number;
+  maxPromptLength: number;
 }> {
   return {
-    temperature: { min: 0, max: 2, default: 0.9 },
-    topK: { min: 1, max: 40, default: 40 },
-    topP: { min: 0, max: 1, default: 0.95 }
+    maxImageUrls: 10,
+    minImageUrls: 1,
+    maxPromptLength: 1000
   };
 }
