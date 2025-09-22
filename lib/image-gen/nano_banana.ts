@@ -159,9 +159,7 @@ export async function generateNanoBananaImage(params: {
     const ossStore = getOSSStore();
     const fileExtension = mimeType === 'image/png' ? 'png' : 'jpg';
     const ossFileName = `nano-banana-images/${uuidv4()}.${fileExtension}`;
-    const ossResult = await ossStore.put(ossFileName, imageBuffer, {
-      contentType: mimeType
-    });
+    const ossResult = await ossStore.put(ossFileName, imageBuffer);
 
     console.log("✅ 图像生成和上传完成:", {
       oss_url: ossResult.url
