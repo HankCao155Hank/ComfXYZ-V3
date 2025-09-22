@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,11 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
     image_urls: (workflow.nodeData.image_urls as string[]) || []
   });
 
+  // 图片上传相关状态
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<Array<{filename: string, url: string}>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleChange = (field: string, value: string | number | string[]) => {
     setFormData(prev => ({
       ...prev,
@@ -40,8 +45,77 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
     }));
   };
 
+  // 处理图片上传
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch('/api/upload-images-batch', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const newUploadedImages = result.uploaded_files.map((file: {filename: string, url: string}) => ({
+          filename: file.filename,
+          url: file.url
+        }));
+        
+        setUploadedImages(prev => [...prev, ...newUploadedImages]);
+        
+        // 更新表单数据中的image_urls
+        const allUrls = [...uploadedImages, ...newUploadedImages].map(img => img.url);
+        handleChange('image_urls', allUrls);
+        
+        console.log('图片上传成功:', newUploadedImages);
+      } else {
+        console.error('图片上传失败:', result.error);
+        alert(`图片上传失败: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('图片上传错误:', error);
+      alert('图片上传失败，请重试');
+    } finally {
+      setUploadingImages(false);
+      // 清空文件输入
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // 删除已上传的图片
+  const removeUploadedImage = (index: number) => {
+    const newUploadedImages = uploadedImages.filter((_, i) => i !== index);
+    setUploadedImages(newUploadedImages);
+    
+    // 更新表单数据中的image_urls
+    const allUrls = newUploadedImages.map(img => img.url);
+    handleChange('image_urls', allUrls);
+  };
+
+  // 打开文件选择器
+  const openFileSelector = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 验证Nano Banana必须有图片
+    if (formData.provider === 'nano_banana' && formData.image_urls.length === 0) {
+      alert('请至少上传一张图片进行编辑');
+      return;
+    }
     
     // 根据不同的provider构建不同的参数
     const submitData: Record<string, unknown> = {
@@ -183,19 +257,83 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
           {/* Nano Banana 特殊参数 */}
           {formData.provider === 'nano_banana' && (
             <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">输入图像URLs (每行一个)</label>
-                <Textarea
-                  value={formData.image_urls.join('\n')}
-                  onChange={(e) => {
-                    const urls = e.target.value.split('\n').filter(url => url.trim());
-                    handleChange('image_urls', urls);
-                  }}
-                  placeholder="请输入图像URL，每行一个&#10;例如：&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-                  rows={4}
-                />
+              <div className="space-y-4">
+                <label className="text-sm font-medium">上传图片文件</label>
+                
+                {/* 文件上传区域 */}
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  
+                  <div className="space-y-2">
+                    <div className="text-gray-500">
+                      {uploadingImages ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <span>正在上传图片...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p>点击选择图片或拖拽图片到此处</p>
+                          <p className="text-xs">支持 JPG、PNG、GIF 格式，单个文件不超过10MB</p>
+                        </>
+                      )}
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      onClick={openFileSelector}
+                      disabled={uploadingImages}
+                      variant="outline"
+                    >
+                      选择图片文件
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 已上传的图片列表 */}
+                {uploadedImages.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">已上传的图片 ({uploadedImages.length})</label>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                      {uploadedImages.map((image, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                          <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <img
+                              src={image.url}
+                              alt={image.filename}
+                              className="w-8 h-8 object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                              }}
+                            />
+                            <span className="text-xs truncate" title={image.filename}>
+                              {image.filename}
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={() => removeUploadedImage(index)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-xs text-gray-500">
-                  支持多个图像URL，每行输入一个。至少需要一个图像URL。
+                  至少需要上传一张图片进行编辑。支持批量上传，最多10张图片。
                 </p>
               </div>
             </>
