@@ -27,8 +27,16 @@ const nextConfig: NextConfig = {
         hostname: 'via.placeholder.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cloud.infini-ai.com',
+        port: '',
+        pathname: '/**',
       }
     ],
+    // 禁用图片优化以避免某些域名的加载问题
+    unoptimized: true,
   },
 };
 

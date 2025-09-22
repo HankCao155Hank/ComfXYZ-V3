@@ -27,9 +27,14 @@ export function SmartImage({
   onClick 
 }: SmartImageProps) {
   const [useNextImage, setUseNextImage] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
-  // 如果 Next.js Image 组件失败，回退到普通 img 标签
-  if (!useNextImage) {
+  // 检查是否是Vercel Blob URL或其他需要特殊处理的URL
+  const isVercelBlob = src.includes('blob.vercel-storage.com');
+  const isInfiniAI = src.includes('cloud.infini-ai.com');
+
+  // 如果图片加载失败或应该使用普通img标签
+  if (!useNextImage || imageError) {
     return (
       <img
         src={src}
@@ -45,27 +50,51 @@ export function SmartImage({
         } : undefined}
         onError={() => {
           console.warn('图片加载失败:', src);
+          setImageError(true);
         }}
       />
     );
   }
 
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      fill={fill}
-      className={className}
-      sizes={sizes}
-      priority={priority}
-      onClick={onClick}
-      onError={() => {
-        console.warn('Next.js Image 组件加载失败，回退到普通 img 标签:', src);
-        setUseNextImage(false);
-      }}
-      unoptimized={src.includes('blob.vercel-storage.com')} // 对于 blob 存储不进行优化
-    />
-  );
+  try {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        fill={fill}
+        className={className}
+        sizes={sizes}
+        priority={priority}
+        onClick={onClick}
+        onError={() => {
+          console.warn('Next.js Image 组件加载失败，回退到普通 img 标签:', src);
+          setUseNextImage(false);
+        }}
+        unoptimized={isVercelBlob || isInfiniAI} // 对于这些域名不进行优化
+      />
+    );
+  } catch (error) {
+    console.warn('Image组件渲染失败，回退到普通img标签:', error);
+    return (
+      <img
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        onClick={onClick}
+        style={fill ? { 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover' 
+        } : undefined}
+        onError={() => {
+          console.warn('图片加载失败:', src);
+          setImageError(true);
+        }}
+      />
+    );
+  }
 }
