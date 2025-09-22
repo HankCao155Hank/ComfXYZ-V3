@@ -57,6 +57,9 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   // 默认参数
   const [defaultParams, setDefaultParams] = useState<Record<string, Record<string, unknown>>>({});
   
+  // 动态图片数量
+  const [imageCount, setImageCount] = useState<number>(1);
+  
   // 图片上传状态
   const [uploadingImages, setUploadingImages] = useState<Record<string, boolean>>({});
   const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
@@ -81,14 +84,32 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   // 初始化默认参数
   const initializeDefaultParams = (workflow: Workflow) => {
     const params: Record<string, Record<string, unknown>> = {};
-    if (workflow.nodeData) {
-      Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
-        const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
-        if (nodeDataObj?.inputs) {
-          params[nodeId] = { ...nodeDataObj.inputs };
-        }
-      });
+    
+    if (workflow.nodeData?.provider === 'nano_banana') {
+      // 为Nano Banana工作流初始化参数（简化结构）
+      params['prompt'] = { prompt: workflow.nodeData.prompt || '' };
+      params['image1'] = { image1: (workflow.nodeData.image_urls as string[])?.[0] || '' };
+      
+      // 根据image_urls数组长度设置图片数量
+      const imageUrls = workflow.nodeData.image_urls as string[] || [];
+      setImageCount(Math.max(1, imageUrls.length));
+      
+      // 动态添加图片参数
+      for (let i = 1; i <= Math.max(1, imageUrls.length); i++) {
+        params[`image${i}`] = { [`image${i}`]: imageUrls[i - 1] || '' };
+      }
+    } else {
+      // 原有的逻辑，处理其他工作流
+      if (workflow.nodeData) {
+        Object.entries(workflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+          const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
+          if (nodeDataObj?.inputs) {
+            params[nodeId] = { ...nodeDataObj.inputs };
+          }
+        });
+      }
     }
+    
     setDefaultParams(params);
   };
 
@@ -97,19 +118,40 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     if (!selectedWorkflow?.nodeData) return [];
     
     const inputs: Array<{nodeId: string, inputKey: string, type: string, value: unknown}> = [];
-    Object.entries(selectedWorkflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
-      const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
-      if (nodeDataObj?.inputs && Object.keys(nodeDataObj.inputs).length > 0) {
-        Object.entries(nodeDataObj.inputs).forEach(([inputKey, value]: [string, unknown]) => {
-          inputs.push({
-            nodeId,
-            inputKey,
-            type: typeof value,
-            value
-          });
+    
+    // 如果是Nano Banana工作流，添加专门的参数（简化结构）
+    if (selectedWorkflow.nodeData.provider === 'nano_banana') {
+      // 添加Nano Banana特有的参数，只包含 prompt 和动态图片
+      inputs.push(
+        { nodeId: 'prompt', inputKey: 'prompt', type: 'string', value: '' }
+      );
+      
+      // 动态添加图片输入
+      for (let i = 1; i <= imageCount; i++) {
+        inputs.push({
+          nodeId: `image${i}`,
+          inputKey: `image${i}`,
+          type: 'string',
+          value: ''
         });
       }
-    });
+    } else {
+      // 原有的逻辑，处理其他工作流
+      Object.entries(selectedWorkflow.nodeData).forEach(([nodeId, nodeData]: [string, unknown]) => {
+        const nodeDataObj = nodeData as { inputs?: Record<string, unknown> };
+        if (nodeDataObj?.inputs && Object.keys(nodeDataObj.inputs).length > 0) {
+          Object.entries(nodeDataObj.inputs).forEach(([inputKey, value]: [string, unknown]) => {
+            inputs.push({
+              nodeId,
+              inputKey,
+              type: typeof value,
+              value
+            });
+          });
+        }
+      });
+    }
+    
     return inputs;
   };
 
@@ -164,6 +206,18 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     }));
   };
 
+  // 增加图片数量
+  const addImageInput = () => {
+    const newImageCount = imageCount + 1;
+    setImageCount(newImageCount);
+    
+    // 添加新的图片参数
+    setDefaultParams(prev => ({
+      ...prev,
+      [`image${newImageCount}`]: { [`image${newImageCount}`]: '' }
+    }));
+  };
+
   // 上传图片到OSS
   const uploadImageToOSS = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -179,7 +233,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     }
 
     const result = await response.json();
-    return result.key;
+    return result.url || result.key; // 返回URL而不是key
   };
 
   // 处理图片上传
@@ -189,16 +243,17 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
     
     try {
-      const imageKey = await uploadImageToOSS(file);
-      setUploadedImages(prev => ({ ...prev, [uploadKey]: imageKey }));
+      const result = await uploadImageToOSS(file);
+      const imageUrl = typeof result === 'string' ? result : (result as { key: string }).key;
+      setUploadedImages(prev => ({ ...prev, [uploadKey]: imageUrl }));
       
       // 根据类型更新相应的参数
       if (type === 'default') {
-        updateDefaultParam(nodeId, inputKey, imageKey);
+        updateDefaultParam(nodeId, inputKey, imageUrl);
       } else if (type === 'xAxis' && index !== undefined) {
-        updateXAxisValues(index, imageKey);
+        updateXAxisValues(index, imageUrl);
       } else if (type === 'yAxis' && index !== undefined) {
-        updateYAxisValues(index, imageKey);
+        updateYAxisValues(index, imageUrl);
       }
     } catch (error) {
       console.error('图片上传失败:', error);
@@ -208,6 +263,9 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     }
   };
 
+  // 检查是否是Nano Banana工作流
+  const isNanoBananaWorkflow = selectedWorkflow?.nodeData?.provider === 'nano_banana';
+
   // 获取输入字段的渲染组件
   const renderInputField = (nodeId: string, inputKey: string, value: unknown, type: string, uploadType: 'default' | 'xAxis' | 'yAxis' = 'default', index?: number) => {
     const handleChange = (newValue: unknown) => {
@@ -215,7 +273,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
     };
 
     // 检查是否是图片输入字段
-    const isImageInput = inputKey === 'image';
+    const isImageInput = inputKey === 'image' || (isNanoBananaWorkflow && inputKey.startsWith('image'));
 
     if (isImageInput) {
       const uploadKey = `${uploadType}-${nodeId}-${inputKey}${index !== undefined ? `-${index}` : ''}`;
@@ -326,6 +384,59 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       return '工作流数据无效';
     }
 
+    // 如果是Nano Banana工作流，使用特殊的验证逻辑
+    if (selectedWorkflow.nodeData.provider === 'nano_banana') {
+      // 验证Nano Banana特有的参数
+      const validXValues = xAxisValues.filter((v: string) => v.trim() !== '');
+      const validYValues = yAxisValues.filter((v: string) => v.trim() !== '');
+
+      if (validXValues.length === 0) {
+        return '请设置至少一个X轴参数值';
+      }
+
+      if (validYValues.length === 0) {
+        return '请设置至少一个Y轴参数值';
+      }
+
+      // 验证是否至少提供了一张输入图像
+      let hasAnyImage = false;
+      
+      // 检查默认参数配置中的图片
+      for (let i = 1; i <= imageCount; i++) {
+        const imageValue = defaultParams[`image${i}`]?.[`image${i}`];
+        if (imageValue && typeof imageValue === 'string' && imageValue.trim() !== '') {
+          hasAnyImage = true;
+          break;
+        }
+      }
+      
+      // 如果默认参数中没有图片，检查XY轴参数配置中的图片
+      if (!hasAnyImage) {
+        // 检查X轴参数中的图片
+        if (xAxisInput && xAxisInput.startsWith('image')) {
+          const validXValues = xAxisValues.filter((v: string) => v.trim() !== '');
+          if (validXValues.length > 0) {
+            hasAnyImage = true;
+          }
+        }
+        
+        // 检查Y轴参数中的图片
+        if (!hasAnyImage && yAxisInput && yAxisInput.startsWith('image')) {
+          const validYValues = yAxisValues.filter((v: string) => v.trim() !== '');
+          if (validYValues.length > 0) {
+            hasAnyImage = true;
+          }
+        }
+      }
+      
+      if (!hasAnyImage) {
+        return '请至少提供一张输入图像';
+      }
+
+      return null; // 验证通过
+    }
+
+    // 原有的验证逻辑，用于其他工作流
     // 验证X轴节点和输入
     if (!selectedWorkflow.nodeData[xAxisNode]) {
       return `X轴节点 ${xAxisNode} 不存在于工作流中`;
@@ -376,6 +487,40 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       return;
     }
     
+    // 如果是Nano Banana工作流，需要转换参数格式
+    let processedDefaultParams = defaultParams;
+    
+    if (selectedWorkflow?.nodeData?.provider === 'nano_banana') {
+      // 构建简化的 Nano Banana 参数
+      const imageUrls: string[] = [];
+      
+      // 从默认参数配置中提取图片URL
+      for (let i = 1; i <= imageCount; i++) {
+        const imageValue = defaultParams[`image${i}`]?.[`image${i}`];
+        if (imageValue && typeof imageValue === 'string' && imageValue.trim() !== '') {
+          imageUrls.push(imageValue.trim());
+        }
+      }
+      
+      // 从X轴参数配置中提取图片URL
+      if (xAxisInput && xAxisInput.startsWith('image')) {
+        const validXValues = xAxisValues.filter((v: string) => v.trim() !== '');
+        imageUrls.push(...validXValues);
+      }
+      
+      // 从Y轴参数配置中提取图片URL
+      if (yAxisInput && yAxisInput.startsWith('image')) {
+        const validYValues = yAxisValues.filter((v: string) => v.trim() !== '');
+        imageUrls.push(...validYValues);
+      }
+      
+      // 简化的API请求格式，只包含 prompt 和 image_urls
+      processedDefaultParams = {
+        prompt: { prompt: defaultParams.prompt?.prompt || '' },
+        image_urls: { image_urls: imageUrls }
+      };
+    }
+    
     const config: XYBatchConfig = {
       workflowId: selectedWorkflowId,
       xAxisNode,
@@ -384,7 +529,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       yAxisNode,
       yAxisInput,
       yAxisValues: yAxisValues.filter((v: string) => v.trim() !== ''),
-      defaultParams
+      defaultParams: processedDefaultParams
     };
     
     onGenerate(config);
@@ -395,6 +540,23 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
   };
 
   const getNodeInputLabel = (nodeId: string, inputKey: string) => {
+    // 如果是Nano Banana工作流，提供中文标签
+    if (selectedWorkflow?.nodeData?.provider === 'nano_banana') {
+      const labels: Record<string, string> = {
+        'prompt': '正面提示词',
+        'negative_prompt': '负面提示词'
+      };
+      
+      // 动态处理图片标签
+      if (inputKey.startsWith('image')) {
+        const imageNumber = inputKey.replace('image', '');
+        return `图片${imageNumber}`;
+      }
+      
+      return labels[inputKey] || inputKey;
+    }
+    
+    // 原有逻辑
     const nodeData = selectedWorkflow?.nodeData?.[nodeId] as { class_type?: string } | undefined;
     const nodeType = nodeData?.class_type || '未知';
     return `${nodeId} (${nodeType}) - ${inputKey}`;
@@ -438,6 +600,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                   setYAxisNode('');
                   setYAxisInput('');
                   setYAxisValues(['']);
+                  setImageCount(1);
                 }
               }}
             >
@@ -482,7 +645,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     <div className="space-y-2">
                       {xAxisValues.map((value, index) => (
                         <div key={index} className="space-y-2">
-                          {xAxisInput === 'image' ? (
+                          {(xAxisInput === 'image' || (isNanoBananaWorkflow && xAxisInput.startsWith('image'))) ? (
                             <div className="flex items-center gap-2">
                               <Input
                                 value={value}
@@ -542,7 +705,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     </Button>
                             </div>
                           )}
-                          {xAxisInput === 'image' && uploadedImages[`xAxis-${xAxisNode}-${xAxisInput}-${index}`] && (
+                          {(xAxisInput === 'image' || (isNanoBananaWorkflow && xAxisInput.startsWith('image'))) && uploadedImages[`xAxis-${xAxisNode}-${xAxisInput}-${index}`] && (
                             <div className="text-xs text-green-600">
                               已上传: {uploadedImages[`xAxis-${xAxisNode}-${xAxisInput}-${index}`]}
                             </div>
@@ -587,7 +750,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     <div className="space-y-2">
                       {yAxisValues.map((value, index) => (
                         <div key={index} className="space-y-2">
-                          {yAxisInput === 'image' ? (
+                          {(yAxisInput === 'image' || (isNanoBananaWorkflow && yAxisInput.startsWith('image'))) ? (
                             <div className="flex items-center gap-2">
                               <Input
                                 value={value}
@@ -647,7 +810,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     </Button>
                             </div>
                           )}
-                          {yAxisInput === 'image' && uploadedImages[`yAxis-${yAxisNode}-${yAxisInput}-${index}`] && (
+                          {(yAxisInput === 'image' || (isNanoBananaWorkflow && yAxisInput.startsWith('image'))) && uploadedImages[`yAxis-${yAxisNode}-${yAxisInput}-${index}`] && (
                             <div className="text-xs text-green-600">
                               已上传: {uploadedImages[`yAxis-${yAxisNode}-${yAxisInput}-${index}`]}
                             </div>
@@ -671,6 +834,34 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                     <br />
                     <span className="text-blue-600">注意：</span>被选为X轴或Y轴的特定字段不会显示在这里，但同一节点的其他字段仍可配置。
                   </p>
+                  
+                  {/* Nano Banana 特殊提示 */}
+                  {selectedWorkflow?.nodeData?.provider === 'nano_banana' && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h4 className="text-sm font-medium text-blue-800">Nano Banana 工作流要求</h4>
+                          <p className="text-sm text-blue-700 mt-1">
+                            ⚠️ 请至少提供一张输入图像（image1、image2 或 image3 中至少一个），否则批量生成将无法进行。
+                          </p>
+                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                            <p className="text-xs text-yellow-800 font-medium">提示词建议：</p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              请使用详细、具体的描述，例如："一张可爱风格的贴纸，描绘了一只开心的小熊猫戴着迷你竹叶帽，正在咀嚼一片绿色竹叶。设计采用粗壮、干净的描边，简单的赛璐璐上色，配色鲜艳。背景必须为白色。"
+                            </p>
+                            <p className="text-xs text-yellow-600 mt-1">
+                              避免使用过于简单的词汇，如"变得更牛逼"等。
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="space-y-4">
                     {Object.entries(defaultParams).map(([nodeId, inputs]) => {
@@ -705,8 +896,26 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                           </h4>
                           {filteredInputs.map(([inputKey, value]) => (
                             <div key={`${nodeId}-${inputKey}`} className="space-y-1">
-                              <label className="text-sm font-medium">{inputKey}</label>
+                              <label className="text-sm font-medium">
+                                {getNodeInputLabel(nodeId, inputKey)}
+                              </label>
                               {renderInputField(nodeId, inputKey, value, typeof value)}
+                              
+                              {/* 在image1后面添加增加更多照片的按钮 */}
+                              {isNanoBananaWorkflow && inputKey === 'image1' && (
+                                <div className="mt-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addImageInput}
+                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                  >
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    增加更多照片
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
