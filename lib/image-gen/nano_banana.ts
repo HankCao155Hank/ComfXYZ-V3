@@ -70,8 +70,26 @@ export async function generateNanoBananaImage(params: {
     });
 
     if (!response.ok) {
-      const errorData: NanoBananaError = await response.json();
-      throw new Error(`API 调用失败: ${errorData.error.message} (${errorData.error.code})`);
+      let errorMessage = `API 调用失败 (${response.status})`;
+      try {
+        const errorData = await response.json();
+        console.error("API 错误响应:", errorData);
+        
+        // 处理不同的错误格式
+        if (errorData.error?.message) {
+          errorMessage = `API 调用失败: ${errorData.error.message} (${errorData.error.code || response.status})`;
+        } else if (errorData.message) {
+          errorMessage = `API 调用失败: ${errorData.message}`;
+        } else if (errorData.detail) {
+          errorMessage = `API 调用失败: ${errorData.detail}`;
+        } else if (typeof errorData === 'string') {
+          errorMessage = `API 调用失败: ${errorData}`;
+        }
+      } catch (parseError) {
+        const responseText = await response.text();
+        errorMessage = `API 调用失败 (${response.status}): ${responseText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result: NanoBananaResponse = await response.json();
