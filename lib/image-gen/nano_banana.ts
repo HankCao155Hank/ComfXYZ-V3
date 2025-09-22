@@ -6,23 +6,31 @@ import { v4 as uuidv4 } from "uuid";
 
 // 类型定义
 interface NanoBananaRequest {
-  model: "gemini-2.5-flash-image-preview";
-  contents: string;
+  contents: Array<{
+    role: "user";
+    parts: Array<{
+      text: string;
+    }>;
+  }>;
   generationConfig?: {
     temperature?: number;
     topK?: number;
     topP?: number;
     maxOutputTokens?: number;
   };
+  safetySettings?: Array<{
+    category: string;
+    threshold: string;
+  }>;
 }
 
 interface NanoBananaResponse {
   candidates: Array<{
     content: {
       parts: Array<{
-        inline_data?: {
+        inlineData?: {
           data: string;
-          mime_type: string;
+          mimeType: string;
         };
       }>;
     };
@@ -53,7 +61,7 @@ const NanoBananaInputSchema = z.object({
 });
 
 // API 配置
-const NANO_BANANA_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent";
+const NANO_BANANA_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
 
 /**
  * 生成图像并上传到 OSS
@@ -85,13 +93,26 @@ export async function generateNanoBananaImage(params: {
 
     // 构建请求体
     const requestBody: NanoBananaRequest = {
-      model: "gemini-2.5-flash-image-preview",
-      contents: fullPrompt,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: fullPrompt }
+          ]
+        }
+      ],
       generationConfig: {
         ...(validatedParams.temperature && { temperature: validatedParams.temperature }),
         ...(validatedParams.topK && { topK: validatedParams.topK }),
         ...(validatedParams.topP && { topP: validatedParams.topP }),
-      }
+        maxOutputTokens: 8192
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
     };
 
     console.log("🚀 开始调用 Nano Banana API:", {
@@ -122,12 +143,12 @@ export async function generateNanoBananaImage(params: {
     });
 
     // 获取图像数据
-    const imagePart = result.candidates?.[0]?.content?.parts?.find(part => part.inline_data);
-    if (!imagePart?.inline_data) {
+    const imagePart = result.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+    if (!imagePart?.inlineData) {
       throw new Error("API 响应中未找到图像数据");
     }
 
-    const { data: imageData, mime_type: mimeType } = imagePart.inline_data;
+    const { data: imageData, mimeType } = imagePart.inlineData;
     
     // 将 base64 数据转换为 Buffer
     const imageBuffer = Buffer.from(imageData, 'base64');
@@ -138,7 +159,9 @@ export async function generateNanoBananaImage(params: {
     const ossStore = getOSSStore();
     const fileExtension = mimeType === 'image/png' ? 'png' : 'jpg';
     const ossFileName = `nano-banana-images/${uuidv4()}.${fileExtension}`;
-    const ossResult = await ossStore.put(ossFileName, imageBuffer);
+    const ossResult = await ossStore.put(ossFileName, imageBuffer, {
+      contentType: mimeType
+    });
 
     console.log("✅ 图像生成和上传完成:", {
       oss_url: ossResult.url
