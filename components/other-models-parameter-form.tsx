@@ -228,7 +228,7 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
             <Input
               type="number"
               value={formData.seed || ''}
-              onChange={(e) => handleChange('seed', e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(e) => handleChange('seed', e.target.value ? parseInt(e.target.value, 10) : 0)}
               placeholder="留空则随机生成"
             />
           </div>

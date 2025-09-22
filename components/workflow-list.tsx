@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +57,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
     seed: undefined as number | undefined
   });
 
-  const fetchWorkflows = async () => {
+  const fetchWorkflows = useCallback(async () => {
     try {
       const response = await fetch('/api/workflows');
       if (!response.ok) {
@@ -80,13 +80,13 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
         if (workflowType === 'comfyui') {
           // ComfyUI工作流：不包含provider字段或provider为wuwen的工作流
           filteredWorkflows = data.data.filter((workflow: Workflow) => {
-            const nodeData = workflow.nodeData as any;
+            const nodeData = workflow.nodeData as Record<string, unknown>;
             return !nodeData.provider || nodeData.provider === 'wuwen';
           });
         } else if (workflowType === 'other-models') {
           // 其他模型工作流：包含provider字段且不为wuwen的工作流
           filteredWorkflows = data.data.filter((workflow: Workflow) => {
-            const nodeData = workflow.nodeData as any;
+            const nodeData = workflow.nodeData as Record<string, unknown>;
             return nodeData.provider && nodeData.provider !== 'wuwen';
           });
         }
@@ -98,7 +98,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
     } finally {
       setLoading(false);
     }
-  };
+  }, [workflowType]);
 
   const deleteWorkflow = async (id: string) => {
     if (!confirm('确定要删除这个工作流吗？')) return;
@@ -172,7 +172,7 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
     fetchWorkflows();
     const interval = setInterval(fetchWorkflows, 15000); // 每15秒刷新一次，减少API调用频率
     return () => clearInterval(interval);
-  }, [workflowType]);
+  }, [workflowType, fetchWorkflows]);
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;

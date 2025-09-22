@@ -39,7 +39,7 @@ export async function DELETE(
     }
 
     // 检查权限：只有工作流的所有者才能删除
-    if (generation.workflow.userId && generation.workflow.userId !== session.user.id) {
+    if (generation.workflow?.userId && generation.workflow.userId !== session.user.id) {
       return NextResponse.json(
         { error: "权限不足，无法删除此记录" },
         { status: 403 }

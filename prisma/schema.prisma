@@ -72,7 +72,7 @@ model Workflow {
   description String?
   // ComfyUI工作流配置
   curlRequest String // 原始curl请求
-  workflowId  String // 从curl中解析出的workflow_id
+  workflowId  String @unique // 从curl中解析出的workflow_id
   nodeData    String // 从curl中解析出的节点数据JSON字符串
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
