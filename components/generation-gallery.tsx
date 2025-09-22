@@ -133,7 +133,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
       if (hasRunningTasks) {
         fetchGenerations();
       }
-    }, 5000); // 统一5秒轮询，减少API调用频率
+    }, 15000); // 统一15秒轮询，大幅减少API调用频率
     
     return () => clearInterval(interval);
   }, [workflowId, limit, fetchGenerations, generations]);
@@ -167,7 +167,12 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
             <Card key={generation.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{generation.workflow.name}</CardTitle>
+                  <CardTitle className="text-base">
+                    {generation.workflow?.name === '其他模型生成' ? 
+                      `其他模型生成 (${generation.actualPrompt ? generation.actualPrompt.substring(0, 20) + '...' : '未知'})` : 
+                      generation.workflow?.name || '未知工作流'
+                    }
+                  </CardTitle>
                   <div className="flex items-center gap-1">
                     {getStatusIcon(generation.status)}
                     <span className="text-sm">{getStatusText(generation.status)}</span>
@@ -208,7 +213,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
                           variant="secondary"
                           onClick={() => downloadImage(
                             generation.blobUrl!,
-                            `${generation.workflow.name}-${generation.id}.png`
+                            `${generation.workflow?.name === '其他模型生成' ? 'other-models' : (generation.workflow?.name || 'unknown')}-${generation.id}.png`
                           )}
                         >
                           <Download className="w-4 h-4" />

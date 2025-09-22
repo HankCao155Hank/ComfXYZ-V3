@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { NodeParameterForm } from '@/components/node-parameter-form';
+import { OtherModelsParameterForm } from '@/components/other-models-parameter-form';
 import { Plus, Play, Settings, Trash2, PlayCircle, Grid } from 'lucide-react';
 
 interface Workflow {
@@ -36,9 +37,10 @@ interface WorkflowListProps {
   onGenerate: (workflowId: string, customParams?: Record<string, unknown>) => void;
   onBatchGenerate: (workflowIds: string[], batchParams?: Record<string, unknown>) => void;
   onXYBatch?: () => void;
+  workflowType?: 'comfyui' | 'other-models';
 }
 
-export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate, onXYBatch }: WorkflowListProps) {
+export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate, onXYBatch, workflowType = 'comfyui' }: WorkflowListProps) {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
@@ -72,7 +74,24 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
       }
       
       if (data.success) {
-        setWorkflows(data.data);
+        let filteredWorkflows = data.data;
+        
+        // 根据工作流类型过滤
+        if (workflowType === 'comfyui') {
+          // ComfyUI工作流：不包含provider字段或provider为wuwen的工作流
+          filteredWorkflows = data.data.filter((workflow: Workflow) => {
+            const nodeData = workflow.nodeData as any;
+            return !nodeData.provider || nodeData.provider === 'wuwen';
+          });
+        } else if (workflowType === 'other-models') {
+          // 其他模型工作流：包含provider字段且不为wuwen的工作流
+          filteredWorkflows = data.data.filter((workflow: Workflow) => {
+            const nodeData = workflow.nodeData as any;
+            return nodeData.provider && nodeData.provider !== 'wuwen';
+          });
+        }
+        
+        setWorkflows(filteredWorkflows);
       }
     } catch (error) {
       console.error('获取工作流失败:', error);
@@ -151,9 +170,9 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
 
   useEffect(() => {
     fetchWorkflows();
-    const interval = setInterval(fetchWorkflows, 5000); // 每5秒刷新一次
+    const interval = setInterval(fetchWorkflows, 15000); // 每15秒刷新一次，减少API调用频率
     return () => clearInterval(interval);
-  }, []);
+  }, [workflowType]);
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;
@@ -179,10 +198,12 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
               XY轴批量
             </Button>
           )}
-          <Button onClick={onCreateNew}>
-            <Plus className="w-4 h-4 mr-2" />
-            新建工作流
-          </Button>
+          {workflowType === 'comfyui' && (
+            <Button onClick={onCreateNew}>
+              <Plus className="w-4 h-4 mr-2" />
+              新建工作流
+            </Button>
+          )}
         </div>
       </div>
 
@@ -323,23 +344,36 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
 
       {workflows.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">还没有创建任何工作流</p>
-          <Button onClick={onCreateNew}>
-            <Plus className="w-4 h-4 mr-2" />
-            创建第一个工作流
-          </Button>
+          <p className="text-muted-foreground mb-4">
+            {workflowType === 'comfyui' ? '还没有创建任何工作流' : '还没有配置任何其他模型工作流'}
+          </p>
+          {workflowType === 'comfyui' && (
+            <Button onClick={onCreateNew}>
+              <Plus className="w-4 h-4 mr-2" />
+              创建第一个工作流
+            </Button>
+          )}
         </div>
       )}
 
       {showParameterForm && selectedWorkflow && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <NodeParameterForm
-              workflow={selectedWorkflow}
-              onSubmit={handleParameterSubmit}
-              onCancel={handleParameterCancel}
-              isLoading={false}
-            />
+            {workflowType === 'other-models' ? (
+              <OtherModelsParameterForm
+                workflow={selectedWorkflow}
+                onSubmit={handleParameterSubmit}
+                onCancel={handleParameterCancel}
+                isLoading={false}
+              />
+            ) : (
+              <NodeParameterForm
+                workflow={selectedWorkflow}
+                onSubmit={handleParameterSubmit}
+                onCancel={handleParameterCancel}
+                isLoading={false}
+              />
+            )}
           </div>
         </div>
       )}

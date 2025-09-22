@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建 Nano Banana 工作流</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .loading {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+    </style>
+</head>
+<body>
+    <h1>创建 Nano Banana 工作流</h1>
+    
+    <div class="container">
+        <h2>说明</h2>
+        <p>点击下面的按钮来创建 Nano Banana 工作流到数据库中。</p>
+        <p>这些工作流将出现在"其他模型管理"页面中。</p>
+    </div>
+
+    <div class="container">
+        <h2>操作</h2>
+        <button onclick="createWorkflows()">创建 Nano Banana 工作流</button>
+        <button onclick="checkWorkflows()">检查现有工作流</button>
+        <button onclick="clearResults()">清空结果</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function createWorkflows() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="result loading">正在创建 Nano Banana 工作流...</div>';
+            
+            try {
+                const response = await fetch('/api/workflows/nano-banana', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="result">
+                            <h3>✅ 创建成功！</h3>
+                            <p>已成功创建 ${result.data.length} 个 Nano Banana 工作流：</p>
+                            <ul>
+                                ${result.data.map(w => `<li><strong>${w.name}</strong> - ${w.description}</li>`).join('')}
+                            </ul>
+                            <p>现在您可以在"其他模型管理"页面中看到这些工作流了！</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ 创建失败</h3>
+                            <p>错误信息：${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ 请求失败</h3>
+                        <p>错误信息：${error.message}</p>
+                        <p>请确保开发服务器正在运行在 localhost:3000</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkWorkflows() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="result loading">正在检查现有工作流...</div>';
+            
+            try {
+                const response = await fetch('/api/workflows');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const nanoBananaWorkflows = result.data.filter(w => 
+                        w.workflowId && w.workflowId.startsWith('nano-banana-')
+                    );
+                    
+                    if (nanoBananaWorkflows.length > 0) {
+                        resultsDiv.innerHTML = `
+                            <div class="result">
+                                <h3>📋 现有 Nano Banana 工作流 (${nanoBananaWorkflows.length} 个)</h3>
+                                <ul>
+                                    ${nanoBananaWorkflows.map(w => `<li><strong>${w.name}</strong> - ${w.description}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div class="result">
+                                <h3>📋 检查结果</h3>
+                                <p>当前没有找到 Nano Banana 工作流。</p>
+                                <p>请点击"创建 Nano Banana 工作流"按钮来创建它们。</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ 检查失败</h3>
+                            <p>错误信息：${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ 请求失败</h3>
+                        <p>错误信息：${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // 页面加载时自动检查现有工作流
+        window.onload = function() {
+            checkWorkflows();
+        };
+    </script>
+</body>
+</html>

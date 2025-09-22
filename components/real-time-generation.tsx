@@ -262,9 +262,9 @@ export function RealTimeGeneration({
           } else {
             // 如果没有运行中的任务，延长轮询间隔
             clearInterval(interval);
-            setTimeout(startPolling, 10000); // 10秒后再开始轮询
+            setTimeout(startPolling, 30000); // 30秒后再开始轮询
           }
-        }, 3000); // 有任务时每3秒刷新一次
+        }, 10000); // 有任务时每10秒刷新一次
       };
       
       startPolling();

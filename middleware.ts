@@ -17,7 +17,7 @@ export default withAuth(
 // 配置需要保护的路由
 export const config = {
   matcher: [
-    // 保护所有路由，除了认证相关的路由、landing page、根路径和静态资源
-    "/((?!api/auth|auth|landing|_next/static|_next/image|favicon.ico|public|$).*)",
+    // 保护所有路由，除了认证相关的路由、API路由、landing page、根路径和静态资源
+    "/((?!api|auth|landing|_next/static|_next/image|favicon.ico|public|$).*)",
   ],
 };

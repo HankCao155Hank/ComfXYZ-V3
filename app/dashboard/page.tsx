@@ -5,7 +5,6 @@ import { WorkflowForm } from '@/components/workflow-form';
 import { WorkflowList } from '@/components/workflow-list';
 import { GenerationGallery } from '@/components/generation-gallery';
 import { RealTimeGeneration } from '@/components/real-time-generation';
-import { FeatureHighlight } from '@/components/feature-highlight';
 import { XYBatchGenerator } from '@/components/xy-batch-generator';
 import { XYGridDisplay } from '@/components/xy-grid-display';
 import { UserMenu } from '@/components/user-menu';
@@ -25,7 +24,7 @@ interface Workflow {
 }
 
 function HomeContent() {
-  const [activeTab, setActiveTab] = useState('workflows');
+  const [activeTab, setActiveTab] = useState('comfyui-workflows');
   const [showForm, setShowForm] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -128,14 +127,22 @@ function HomeContent() {
         body: JSON.stringify({
           workflowId,
           customParams,
+          ...customParams, // 展开参数，包括 provider 等
         }),
       });
 
       const result = await response.json();
       if (result.success) {
         showToast('生成任务已启动！');
-        setCurrentGenerationId(result.data.generationId);
-        setActiveTab('realtime');
+        // 如果是直接返回结果的 API（其他模型），跳转到历史记录页面
+        if (result.imageUrls && result.imageUrls.length > 0) {
+          showToast(`${customParams?.provider || 'API'} 调用成功！图像已生成`);
+          setActiveTab('gallery'); // 跳转到历史记录页面
+        } else {
+          // ComfyUI 工作流，跳转到实时生成页面
+          setCurrentGenerationId(result.data.generationId);
+          setActiveTab('realtime');
+        }
       } else {
         showToast(result.error || '启动生成任务失败', 'error');
       }
@@ -259,23 +266,36 @@ function HomeContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="workflows">工作流管理</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="comfyui-workflows">ComfyUI工作流管理</TabsTrigger>
+          <TabsTrigger value="other-models">其他模型管理</TabsTrigger>
           <TabsTrigger value="realtime">实时生成</TabsTrigger>
           <TabsTrigger value="gallery">历史记录</TabsTrigger>
           <TabsTrigger value="xy-batch">XY轴批量</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="workflows" className="space-y-6">
-          <FeatureHighlight />
+        <TabsContent value="comfyui-workflows" className="space-y-6">
           <WorkflowList
             onCreateNew={handleNewWorkflow}
             onEdit={handleEditWorkflow}
             onGenerate={handleGenerate}
             onBatchGenerate={handleBatchGenerate}
             onXYBatch={() => setActiveTab('xy-batch')}
+            workflowType="comfyui"
           />
         </TabsContent>
+        
+        <TabsContent value="other-models" className="space-y-6">
+          <WorkflowList
+            onCreateNew={handleNewWorkflow}
+            onEdit={handleEditWorkflow}
+            onGenerate={handleGenerate}
+            onBatchGenerate={handleBatchGenerate}
+            onXYBatch={() => setActiveTab('xy-batch')}
+            workflowType="other-models"
+          />
+        </TabsContent>
+        
         
         <TabsContent value="realtime" className="space-y-6">
           <RealTimeGeneration 

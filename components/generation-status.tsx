@@ -125,7 +125,7 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
       return;
     }
     
-    const statusInterval = setInterval(fetchStatus, 3000); // 每3秒检查状态，减少API调用频率
+    const statusInterval = setInterval(fetchStatus, 10000); // 每10秒检查状态，大幅减少API调用频率
     const timeInterval = setInterval(() => {
       setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000); // 每秒更新时间

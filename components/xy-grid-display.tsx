@@ -221,7 +221,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
 
   useEffect(() => {
     fetchGenerationStatuses();
-    const interval = setInterval(fetchGenerationStatuses, 3000); // 每3秒刷新
+    const interval = setInterval(fetchGenerationStatuses, 15000); // 每15秒刷新，减少API调用频率
     return () => clearInterval(interval);
   }, []);
 

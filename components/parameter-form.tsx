@@ -14,6 +14,10 @@ interface ParameterFormData {
   steps: number;
   cfg: number;
   seed?: number;
+  provider: string;
+  image_url?: string;
+  mask_url?: string;
+  size?: string;
 }
 
 interface ParameterFormProps {
@@ -35,7 +39,11 @@ export function ParameterForm({ workflow, onSubmit, onCancel, isLoading }: Param
     height: 1024,
     steps: 20,
     cfg: 2.5,
-    seed: undefined
+    seed: undefined,
+    provider: 'wuwen',
+    image_url: '',
+    mask_url: '',
+    size: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +69,20 @@ export function ParameterForm({ workflow, onSubmit, onCancel, isLoading }: Param
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
+            <label className="text-sm font-medium">API 提供商 *</label>
+            <select
+              value={formData.provider}
+              onChange={(e) => handleChange('provider', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="wuwen">无问芯穹 (ComfyUI)</option>
+              <option value="meitu">美图 AI 开放平台</option>
+              <option value="qwen_image">通义千问图像生成</option>
+              <option value="doubao_seedream">豆包 Seedream</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium">正向提示词 *</label>
             <Textarea
               value={formData.prompt}
@@ -80,6 +102,59 @@ export function ParameterForm({ workflow, onSubmit, onCancel, isLoading }: Param
               className="min-h-[80px]"
             />
           </div>
+
+          {/* 美图 API 特有字段 */}
+          {formData.provider === 'meitu' && (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">图片 URL *</label>
+                <Input
+                  value={formData.image_url || ''}
+                  onChange={(e) => handleChange('image_url', e.target.value)}
+                  placeholder="输入要处理的图片 URL"
+                  required={formData.provider === 'meitu'}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">蒙版 URL *</label>
+                <Input
+                  value={formData.mask_url || ''}
+                  onChange={(e) => handleChange('mask_url', e.target.value)}
+                  placeholder="输入蒙版图片 URL"
+                  required={formData.provider === 'meitu'}
+                />
+              </div>
+            </>
+          )}
+
+          {/* 通义千问和豆包 API 的尺寸选择 */}
+          {['qwen_image', 'doubao_seedream'].includes(formData.provider) && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">图像尺寸</label>
+              <select
+                value={formData.size || ''}
+                onChange={(e) => handleChange('size', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {formData.provider === 'qwen_image' ? (
+                  <>
+                    <option value="1328*1328">1328×1328 (1:1)</option>
+                    <option value="1664*928">1664×928 (16:9)</option>
+                    <option value="1472*1140">1472×1140 (4:3)</option>
+                    <option value="1140*1472">1140×1472 (3:4)</option>
+                    <option value="928*1664">928×1664 (9:16)</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="1024x1024">1024×1024 (1:1)</option>
+                    <option value="1024x1792">1024×1792 (9:16)</option>
+                    <option value="1792x1024">1792×1024 (16:9)</option>
+                    <option value="1664x2496">1664×2496 (2:3)</option>
+                  </>
+                )}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -27,6 +27,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.15.5",
+    "@types/uuid": "^10.0.0",
     "@vercel/blob": "^1.1.1",
     "ai": "^5.0.2",
     "bcryptjs": "^3.0.2",
@@ -43,6 +44,7 @@
     "sharp": "^0.34.3",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.3.1",
+    "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
     "zod": "^4.0.14"
   },

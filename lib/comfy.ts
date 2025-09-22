@@ -1,5 +1,6 @@
 import { put } from "@vercel/blob";
 import { cleanWorkflowImageReferences, validateWorkflowData } from "./workflow-utils";
+import { generateImage as generateImageGen, ImageGenerationParams } from "./image-gen";
 // 类型定义
 interface GenerateImageParams {
   prompt: string;
@@ -10,6 +11,24 @@ interface GenerateImageParams {
   steps?: number;
   cfg?: number;
   workflowId?: string; // ComfyStack工作流ID
+  image_url?: string; // 美图 API 需要的图片 URL
+  mask_url?: string; // 美图 API 需要的蒙版 URL
+}
+
+// 美图 API 参数接口
+interface MeituAPIParams {
+  image_url: string;
+  mask_url: string;
+  prompt: string;
+}
+
+// 美图 API 响应接口
+interface MeituAPIResponse {
+  code: number;
+  message: string;
+  data: {
+    result_url: string;
+  };
 }
 interface ComfyUIResponse {
   code: number;
@@ -298,6 +317,129 @@ export const generateImage = async (
     throw error;
   }
 };
+// 美图 AI 开放平台 API 调用函数
+export const callMeituAPI = async (params: MeituAPIParams): Promise<string> => {
+  const apiKey = process.env.MEITU_API_KEY;
+  if (!apiKey) {
+    throw new Error("MEITU_API_KEY 未配置");
+  }
+
+  if (!params.image_url || !params.mask_url || !params.prompt) {
+    throw new Error("美图 API 需要 image_url、mask_url 和 prompt 参数");
+  }
+
+  const API_URL = "https://ai.meitu.com/api/v1/image/inpaint"; // 根据美图 API 文档调整
+
+  try {
+    console.log("正在调用美图 AI API...");
+    console.log("请求参数:", JSON.stringify(params, null, 2));
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey
+      },
+      body: JSON.stringify(params)
+    });
+
+    if (!response.ok) {
+      throw new Error(`美图 API 请求失败: ${response.statusText}`);
+    }
+
+    const data: MeituAPIResponse = await response.json();
+    console.log("美图 API 响应:", JSON.stringify(data, null, 2));
+
+    if (data.code !== 0) {
+      throw new Error(`美图 API 返回错误: ${data.message || '未知错误'}`);
+    }
+
+    if (!data.data || !data.data.result_url) {
+      throw new Error("美图 API 响应中缺少 result_url 字段");
+    }
+
+    console.log(`美图 API 调用成功，结果 URL: ${data.data.result_url}`);
+    return data.data.result_url;
+  } catch (error) {
+    console.error("美图 API 调用失败:", error);
+    throw error;
+  }
+};
+
+// 无问芯穹 API 调用函数（重命名现有的 generateImage 函数）
+export const callWuWenAPI = async (params: GenerateImageParams): Promise<string> => {
+  if (!params.workflowId) {
+    throw new Error("无问芯穹 API 需要 workflowId 参数");
+  }
+
+  // 获取工作流配置
+  const workflowConfig = getWorkflowConfig('qwen-image-default');
+  const promptData = workflowConfig.buildPrompt(params);
+
+  return await generateImage(params.workflowId, promptData);
+};
+
+// 通义千问图像生成 API 调用函数
+export const callQwenImageAPI = async (params: ImageGenerationParams): Promise<string> => {
+  const result = await generateImageGen({
+    ...params,
+    model: 'qwen'
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || '通义千问图像生成失败');
+  }
+
+  return result.url!;
+};
+
+// 豆包 Seedream API 调用函数
+export const callDoubaoSeedreamAPI = async (params: ImageGenerationParams): Promise<string> => {
+  const result = await generateImageGen({
+    ...params,
+    model: 'doubao-seedream'
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || '豆包 Seedream 图像生成失败');
+  }
+
+  return result.url!;
+};
+
+export const callNanoBananaAPI = async (params: ImageGenerationParams): Promise<string> => {
+  const result = await generateImageGen({
+    ...params,
+    model: 'nano-banana'
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || 'Nano Banana 图像生成失败');
+  }
+
+  return result.url!;
+};
+
+// 统一的 API 调用函数
+export const callAPI = async (provider: string, params: MeituAPIParams | GenerateImageParams | ImageGenerationParams): Promise<string> => {
+  console.log(`调用 ${provider} API，参数:`, params);
+
+  switch (provider) {
+    case 'meitu':
+      return await callMeituAPI(params as MeituAPIParams);
+    case 'wuwen':
+      return await callWuWenAPI(params as GenerateImageParams);
+    case 'qwen_image':
+      return await callQwenImageAPI(params as ImageGenerationParams);
+    case 'doubao_seedream':
+      return await callDoubaoSeedreamAPI(params as ImageGenerationParams);
+    case 'nano_banana':
+      return await callNanoBananaAPI(params as ImageGenerationParams);
+    default:
+      throw new Error(`不支持的 API 提供商: ${provider}`);
+  }
+};
+
 /* 
 使用示例:
 // 基本使用
