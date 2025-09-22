@@ -73,12 +73,19 @@ export async function POST(_request: NextRequest) {
         update: {
           name: workflowData.name,
           description: workflowData.description,
+          curlRequest: JSON.stringify({
+            workflow_id: workflowData.workflowId,
+            prompt: workflowData.nodeData,
+          }),
           nodeData: JSON.stringify(workflowData.nodeData)
         },
         create: {
           name: workflowData.name,
           description: workflowData.description,
-          curlRequest: '',
+          curlRequest: JSON.stringify({
+            workflow_id: workflowData.workflowId,
+            prompt: workflowData.nodeData,
+          }),
           workflowId: workflowData.workflowId,
           nodeData: JSON.stringify(workflowData.nodeData)
         }
