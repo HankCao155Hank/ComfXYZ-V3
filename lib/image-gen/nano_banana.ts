@@ -60,6 +60,16 @@ export async function generateNanoBananaImage(params: {
     });
 
     // 调用 Gemini Nano Banana API
+    console.log("📡 发送API请求:", {
+      url: NANO_BANANA_API_URL,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.substring(0, 10)}...` // 只显示前10个字符
+      },
+      body: requestBody
+    });
+
     const response = await fetch(NANO_BANANA_API_URL, {
       method: 'POST',
       headers: {
@@ -69,11 +79,16 @@ export async function generateNanoBananaImage(params: {
       body: JSON.stringify(requestBody)
     });
 
+    console.log("📡 API响应状态:", response.status, response.statusText);
+
     if (!response.ok) {
-      let errorMessage = `API 调用失败 (${response.status})`;
+      let errorMessage = `API 调用失败 (${response.status} ${response.statusText})`;
+      let errorDetails = null;
+      
       try {
         const errorData = await response.json();
-        console.error("API 错误响应:", errorData);
+        console.error("🔴 API 错误响应详情:", JSON.stringify(errorData, null, 2));
+        errorDetails = errorData;
         
         // 处理不同的错误格式
         if (errorData.error?.message) {
@@ -82,26 +97,56 @@ export async function generateNanoBananaImage(params: {
           errorMessage = `API 调用失败: ${errorData.message}`;
         } else if (errorData.detail) {
           errorMessage = `API 调用失败: ${errorData.detail}`;
+        } else if (errorData.task_status) {
+          errorMessage = `任务失败: ${errorData.task_status}`;
         } else if (typeof errorData === 'string') {
           errorMessage = `API 调用失败: ${errorData}`;
+        } else if (errorData) {
+          errorMessage = `API 调用失败: ${JSON.stringify(errorData)}`;
         }
       } catch (parseError) {
+        console.error("🔴 JSON解析失败:", parseError);
         const responseText = await response.text();
+        console.error("🔴 原始响应文本:", responseText);
         errorMessage = `API 调用失败 (${response.status}): ${responseText}`;
       }
+      
       throw new Error(errorMessage);
     }
 
-    const result: NanoBananaResponse = await response.json();
-    console.log("✅ Gemini Nano Banana API 调用成功:", {
-      generated_images: result.image_urls.length
-    });
+    const result = await response.json();
+    console.log("📡 API 成功响应:", JSON.stringify(result, null, 2));
 
-    // 返回第一个生成的图像URL
-    if (result.image_urls && result.image_urls.length > 0) {
+    // 检查响应格式
+    if (result.image_urls && Array.isArray(result.image_urls) && result.image_urls.length > 0) {
       const imageUrl = result.image_urls[0];
       console.log("✅ 图像生成完成:", {
-        image_url: imageUrl
+        image_url: imageUrl,
+        total_images: result.image_urls.length
+      });
+
+      return {
+        success: true,
+        url: imageUrl
+      };
+    } else if (result.result?.image_urls && Array.isArray(result.result.image_urls) && result.result.image_urls.length > 0) {
+      // 处理嵌套在result中的响应格式
+      const imageUrl = result.result.image_urls[0];
+      console.log("✅ 图像生成完成 (嵌套格式):", {
+        image_url: imageUrl,
+        total_images: result.result.image_urls.length
+      });
+
+      return {
+        success: true,
+        url: imageUrl
+      };
+    } else if (result.data?.image_urls && Array.isArray(result.data.image_urls) && result.data.image_urls.length > 0) {
+      // 处理嵌套在data中的响应格式
+      const imageUrl = result.data.image_urls[0];
+      console.log("✅ 图像生成完成 (data格式):", {
+        image_url: imageUrl,
+        total_images: result.data.image_urls.length
       });
 
       return {
@@ -109,7 +154,8 @@ export async function generateNanoBananaImage(params: {
         url: imageUrl
       };
     } else {
-      throw new Error("API 响应中未找到生成的图像");
+      console.error("🔴 API响应格式异常:", result);
+      throw new Error(`API 响应格式异常，未找到图像URL。响应: ${JSON.stringify(result)}`);
     }
 
   } catch (error: unknown) {
