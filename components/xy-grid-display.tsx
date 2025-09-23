@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SmartImage } from './smart-image';
 import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
+import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
+import { useGenerationStore } from '@/lib/stores/useGenerationStore';
 
 interface XYBatchResult {
   batchId: string;
@@ -48,8 +50,19 @@ interface XYGridDisplayProps {
 }
 
 export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
-  const [generations, setGenerations] = useState<Record<string, Generation>>({});
-  const [loading, setLoading] = useState(false);
+  // 使用全局状态管理
+  const { generations: allGenerations, loading, refresh } = useGlobalPolling({
+    enabled: true,
+    interval: 2000, // 2秒轮询间隔
+    limit: 100
+  });
+  
+  // 将generations数组转换为Record格式以保持兼容性
+  const generations = allGenerations.reduce((acc, gen) => {
+    acc[gen.id] = gen;
+    return acc;
+  }, {} as Record<string, Generation>);
+  
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{
     xValue: string;
@@ -58,36 +71,6 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   } | null>(null);
   const [exporting] = useState(false);
 
-  const fetchGenerationStatuses = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/generations?limit=100');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        return;
-      }
-      
-      if (data.success) {
-        const generationsMap: Record<string, Generation> = {};
-        data.data.generations.forEach((gen: Generation) => {
-          generationsMap[gen.id] = gen;
-        });
-        setGenerations(generationsMap);
-      }
-    } catch (error) {
-      console.error('获取生成状态失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getGenerationStatus = (generationId: string) => {
     const generation = generations[generationId];
@@ -219,11 +202,10 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   //   return labels[type] || type;
   // };
 
+  // 初始加载
   useEffect(() => {
-    fetchGenerationStatuses();
-    const interval = setInterval(fetchGenerationStatuses, 15000); // 每15秒刷新，减少API调用频率
-    return () => clearInterval(interval);
-  }, []);
+    refresh();
+  }, [refresh]);
 
   return (
     <div className="space-y-6">
@@ -241,7 +223,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button onClick={fetchGenerationStatuses} variant="outline" size="sm" disabled={loading}>
+              <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 刷新
               </Button>

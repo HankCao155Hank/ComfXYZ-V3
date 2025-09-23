@@ -9,6 +9,8 @@ import { SmartImage } from './smart-image';
 import { GenerationStatus } from './generation-status';
 import { ImageReveal } from './image-reveal';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
+import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
+import { useGenerationStore } from '@/lib/stores/useGenerationStore';
 
 interface Generation {
   id: string;
@@ -45,8 +47,13 @@ export function RealTimeGeneration({
   autoRefresh = true,
   onDelete
 }: RealTimeGenerationProps) {
-  const [generations, setGenerations] = useState<Generation[]>([]);
-  const [loading, setLoading] = useState(false);
+  // 使用全局状态管理
+  const { generations, loading, refresh, hasRunningTasks } = useGlobalPolling({
+    enabled: autoRefresh,
+    interval: 2000, // 2秒轮询间隔
+    limit: 10
+  });
+  
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
@@ -56,51 +63,14 @@ export function RealTimeGeneration({
   const [selectedGenerations, setSelectedGenerations] = useState<string[]>([]);
   const [showBatchActions, setShowBatchActions] = useState(false);
 
-  const fetchGenerations = useCallback(async () => {
-    if (!autoRefresh && !generationId) return;
-    
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (generationId) {
-        // 如果有特定的generationId，获取该记录
-        params.set('limit', '10');
-      } else {
-        // 否则获取最近的生成记录
-        params.set('limit', '10');
+  // 监听完成状态变化
+  useEffect(() => {
+    generations.forEach((gen: Generation) => {
+      if (gen.status === 'completed' && gen.blobUrl && onComplete) {
+        onComplete(gen);
       }
-
-      const response = await fetch(`/api/generations?${params}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError, 'Response text:', text);
-        return;
-      }
-      
-      if (data.success) {
-        const newGenerations = data.data.generations;
-        setGenerations(newGenerations);
-        
-        // 检查是否有新完成的生成
-        newGenerations.forEach((gen: Generation) => {
-          if (gen.status === 'completed' && gen.blobUrl && onComplete) {
-            onComplete(gen);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('获取生成记录失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [autoRefresh, generationId, onComplete]);
+    });
+  }, [generations, onComplete]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -244,38 +214,12 @@ export function RealTimeGeneration({
     setSelectedGenerations([]);
   };
 
+  // 初始加载
   useEffect(() => {
-    fetchGenerations();
-    
     if (autoRefresh) {
-      let interval: NodeJS.Timeout;
-      
-      const startPolling = () => {
-        interval = setInterval(() => {
-          // 检查是否有正在进行的任务，如果没有则减少轮询频率
-          const hasRunningTasks = generations.some((gen: { status: string }) => 
-            gen.status === 'pending' || gen.status === 'processing'
-          );
-          
-          if (hasRunningTasks) {
-            fetchGenerations();
-          } else {
-            // 如果没有运行中的任务，延长轮询间隔
-            clearInterval(interval);
-            setTimeout(startPolling, 30000); // 30秒后再开始轮询
-          }
-        }, 10000); // 有任务时每10秒刷新一次
-      };
-      
-      startPolling();
-      
-      return () => {
-        if (interval) {
-          clearInterval(interval);
-        }
-      };
+      refresh();
     }
-  }, [generationId, autoRefresh, fetchGenerations, generations]);
+  }, [autoRefresh, refresh]);
 
   if (generations.length === 0 && !loading) {
     return (
@@ -308,7 +252,7 @@ export function RealTimeGeneration({
               批量删除
             </Button>
           )}
-          <Button onClick={fetchGenerations} variant="outline" size="sm" disabled={loading}>
+          <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
@@ -373,7 +317,7 @@ export function RealTimeGeneration({
                 onComplete(generation);
               }
             }
-            fetchGenerations(); // 刷新列表
+            refresh(); // 刷新列表
           }}
           onError={(error) => {
             console.error('生成失败:', error);

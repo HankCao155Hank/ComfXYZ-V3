@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RefreshCw, CheckCircle, XCircle, Clock, Sparkles } from 'lucide-react';
+import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
+import { useGenerationStore } from '@/lib/stores/useGenerationStore';
 
 interface GenerationStatusProps {
   generationId: string;
@@ -13,63 +15,53 @@ interface GenerationStatusProps {
 }
 
 export function GenerationStatus({ generationId, onComplete, onError }: GenerationStatusProps) {
+  // 使用全局状态管理
+  const { generations, loading, refresh } = useGlobalPolling({
+    enabled: true,
+    interval: 2000, // 2秒轮询间隔
+    limit: 10
+  });
+  
+  const getGenerationById = useGenerationStore(state => state.getGenerationById);
+  const generation = getGenerationById(generationId);
+  
   const [status, setStatus] = useState<string>('pending');
   const [progress, setProgress] = useState<number>(0);
   const [timeElapsed, setTimeElapsed] = useState<number>(0);
   const [startTime] = useState<number>(Date.now());
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/generations?limit=10`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  // 监听generation状态变化
+  useEffect(() => {
+    if (generation) {
+      setStatus(generation.status);
       
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError, 'Response text:', text);
-        return;
-      }
-      
-      if (data.success && data.data.generations.length > 0) {
-        const generation = data.data.generations.find((g: { id: string }) => g.id === generationId);
-        if (generation) {
-          setStatus(generation.status);
-          
-          // 根据状态设置进度
-          switch (generation.status) {
-            case 'pending':
-              setProgress(10);
-              break;
-            case 'running':
-              // 模拟运行进度（基于时间）
-              const elapsed = Date.now() - startTime;
-              const estimatedTotal = 120000; // 预估2分钟完成
-              const timeProgress = Math.min((elapsed / estimatedTotal) * 80, 80); // 最多80%
-              setProgress(20 + timeProgress);
-              break;
-            case 'completed':
-              setProgress(100);
-              if (generation.blobUrl && onComplete) {
-                onComplete(generation.blobUrl);
-              }
-              break;
-            case 'failed':
-              setProgress(0);
-              if (generation.errorMsg && onError) {
-                onError(generation.errorMsg);
-              }
-              break;
+      // 根据状态设置进度
+      switch (generation.status) {
+        case 'pending':
+          setProgress(10);
+          break;
+        case 'running':
+          // 模拟运行进度（基于时间）
+          const elapsed = Date.now() - startTime;
+          const estimatedTotal = 120000; // 预估2分钟完成
+          const timeProgress = Math.min((elapsed / estimatedTotal) * 80, 80); // 最多80%
+          setProgress(20 + timeProgress);
+          break;
+        case 'completed':
+          setProgress(100);
+          if (generation.blobUrl && onComplete) {
+            onComplete(generation.blobUrl);
           }
-        }
+          break;
+        case 'failed':
+          setProgress(0);
+          if (generation.errorMsg && onError) {
+            onError(generation.errorMsg);
+          }
+          break;
       }
-    } catch (error) {
-      console.error('获取生成状态失败:', error);
     }
-  }, [generationId, onComplete, onError, startTime]);
+  }, [generation, onComplete, onError, startTime]);
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -117,24 +109,19 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
     return mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`;
   };
 
+  // 初始加载
   useEffect(() => {
-    fetchStatus();
-    
-    // 如果任务已完成或失败，停止轮询
-    if (status === 'completed' || status === 'failed') {
-      return;
-    }
-    
-    const statusInterval = setInterval(fetchStatus, 10000); // 每10秒检查状态，大幅减少API调用频率
+    refresh();
+  }, [refresh]);
+
+  // 更新时间
+  useEffect(() => {
     const timeInterval = setInterval(() => {
       setTimeElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000); // 每秒更新时间
 
-    return () => {
-      clearInterval(statusInterval);
-      clearInterval(timeInterval);
-    };
-  }, [generationId, fetchStatus, startTime, status]);
+    return () => clearInterval(timeInterval);
+  }, [startTime]);
 
   const statusInfo = getStatusInfo(status);
 

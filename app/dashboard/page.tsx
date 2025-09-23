@@ -11,6 +11,7 @@ import { UserMenu } from '@/components/user-menu';
 import { AuthGuard } from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PerformanceMonitor } from '@/components/performance-monitor';
 
 interface Workflow {
   id: string;
@@ -335,6 +336,9 @@ function HomeContent() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* 性能监控组件 */}
+      <PerformanceMonitor />
     </div>
   );
 }

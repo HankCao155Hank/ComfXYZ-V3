@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { NodeParameterForm } from '@/components/node-parameter-form';
 import { OtherModelsParameterForm } from '@/components/other-models-parameter-form';
 import { Plus, Play, Settings, Trash2, PlayCircle, Grid } from 'lucide-react';
+import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
 
 interface Workflow {
   id: string;
@@ -170,8 +171,8 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
 
   useEffect(() => {
     fetchWorkflows();
-    const interval = setInterval(fetchWorkflows, 15000); // 每15秒刷新一次，减少API调用频率
-    return () => clearInterval(interval);
+    // 工作流列表不需要频繁轮询，只在初始化时加载一次
+    // 轮询由全局状态管理处理
   }, [workflowType, fetchWorkflows]);
 
   if (loading) {

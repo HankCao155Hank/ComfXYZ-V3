@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw, Eye, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { SmartImage } from './smart-image';
+import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
 
 interface Generation {
   id: string;
@@ -35,39 +36,16 @@ interface GenerationGalleryProps {
 }
 
 export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryProps) {
-  const [generations, setGenerations] = useState<Generation[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 使用全局状态管理
+  const { generations, loading, refresh } = useGlobalPolling({
+    enabled: true,
+    interval: 2000, // 2秒轮询间隔
+    limit,
+    workflowId
+  });
+  
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const fetchGenerations = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (workflowId) params.set('workflowId', workflowId);
-      params.set('limit', limit.toString());
-
-      const response = await fetch(`/api/generations?${params}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError, 'Response text:', text);
-        return;
-      }
-      
-      if (data.success) {
-        setGenerations(data.data.generations);
-      }
-    } catch (error) {
-      console.error('获取生成记录失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [workflowId, limit]);
 
   const downloadImage = async (url: string, filename: string) => {
     try {
@@ -121,22 +99,10 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
     return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
   };
 
+  // 初始加载
   useEffect(() => {
-    fetchGenerations();
-    
-    // 智能轮询：如果有正在进行的任务，则频繁轮询；否则减少频率
-    const interval = setInterval(() => {
-      const hasRunningTasks = generations.some((gen: { status: string }) => 
-        gen.status === 'pending' || gen.status === 'processing'
-      );
-      
-      if (hasRunningTasks) {
-        fetchGenerations();
-      }
-    }, 15000); // 统一15秒轮询，大幅减少API调用频率
-    
-    return () => clearInterval(interval);
-  }, [workflowId, limit, fetchGenerations, generations]);
+    refresh();
+  }, [refresh]);
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;
@@ -151,7 +117,7 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
             {workflowId ? '工作流生成记录' : '所有生成记录'} ({generations.length} 项)
           </p>
         </div>
-        <Button onClick={fetchGenerations} variant="outline" size="sm">
+        <Button onClick={refresh} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" />
           刷新
         </Button>
