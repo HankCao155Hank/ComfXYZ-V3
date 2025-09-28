@@ -62,15 +62,55 @@ const decodeImageUrl = (url: string): string => {
 };
 // 等待函数
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-// 下载图片并转换为Buffer
+// 下载图片并转换为Buffer - 添加重试机制
 const downloadImage = async (url: string): Promise<Buffer> => {
   const decodedUrl = decodeImageUrl(url);
-  const response = await fetch(decodedUrl);
-  if (!response.ok) {
-    throw new Error(`下载图片失败: ${response.statusText}`);
+  
+  // 重试机制：最多重试3次
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`尝试下载图片 (第${attempt}次): ${decodedUrl}`);
+      
+      // 根据尝试次数调整超时时间
+      const timeout = attempt === 1 ? 30000 : attempt === 2 ? 45000 : 60000; // 30s, 45s, 60s
+      
+      const response = await fetch(decodedUrl, {
+        signal: AbortSignal.timeout(timeout),
+        headers: {
+          'User-Agent': 'ComfyUI-Client/1.0',
+          'Accept': 'image/*',
+          'Connection': 'keep-alive'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`下载图片失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      console.log(`图片下载成功，大小: ${arrayBuffer.byteLength} bytes`);
+      return Buffer.from(arrayBuffer);
+      
+    } catch (error) {
+      console.error(`第${attempt}次下载失败:`, error);
+      
+      // 如果是超时错误，尝试更长的等待时间
+      if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('TIMEOUT'))) {
+        console.log('检测到超时错误，将使用更长的等待时间');
+      }
+      
+      if (attempt === 3) {
+        throw new Error(`图片下载失败，已重试3次: ${error instanceof Error ? error.message : '未知错误'}`);
+      }
+      
+      // 等待后重试，递增延迟时间
+      const delay = attempt * 3000; // 3秒, 6秒
+      console.log(`等待 ${delay}ms 后重试...`);
+      await sleep(delay);
+    }
   }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  
+  throw new Error('图片下载失败');
 };
 // 轮询任务状态
 const pollTaskStatus = async (apiKey: string, promptId: string): Promise<string[]> => {
@@ -87,7 +127,9 @@ const pollTaskStatus = async (apiKey: string, promptId: string): Promise<string[
         body: JSON.stringify({
           comfy_task_ids: [promptId],
           url_expire_period: 1800 // 30分钟过期
-        })
+        }),
+        // 添加超时设置
+        signal: AbortSignal.timeout(15000) // 15秒超时
       });
       if (!response.ok) {
         throw new Error(`获取任务状态失败: ${response.statusText}`);
@@ -113,6 +155,14 @@ const pollTaskStatus = async (apiKey: string, promptId: string): Promise<string[
       await sleep(pollInterval);
     } catch (error) {
       console.error(`轮询第${attempt + 1}次失败:`, error);
+      
+      // 如果是网络错误，进行重试
+      if (error instanceof Error && (error.message.includes('fetch failed') || error.message.includes('ECONNRESET'))) {
+        console.log(`网络错误，等待 ${pollInterval}ms 后重试...`);
+        await sleep(pollInterval);
+        continue;
+      }
+      
       if (attempt === maxAttempts - 1) {
         throw error;
       }
@@ -215,6 +265,11 @@ export const generateImage = async (
   if (!apiKey) {
     throw new Error("INFINI_AI_API_KEY 未配置");
   }
+  
+  // 验证API密钥格式
+  if (apiKey.length < 10) {
+    throw new Error("INFINI_AI_API_KEY 格式不正确，请检查环境变量配置");
+  }
 
   if (!workflowId) {
     throw new Error("工作流ID不能为空");
@@ -249,14 +304,41 @@ export const generateImage = async (
       // 第一步：提交生成任务
       console.log("正在提交图像生成任务...");
       console.log("请求数据:", JSON.stringify(payload, null, 2));
-      const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+      
+      // 添加重试机制
+      let response;
+      let lastError;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`尝试第 ${attempt} 次连接...`);
+          response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+            // 添加超时设置
+            signal: AbortSignal.timeout(30000) // 30秒超时
+          });
+          break; // 成功则跳出重试循环
+        } catch (error) {
+          lastError = error;
+          console.error(`第 ${attempt} 次尝试失败:`, error);
+          
+          if (attempt < 3) {
+            // 等待后重试，递增延迟时间
+            const delay = attempt * 2000; // 2秒, 4秒
+            console.log(`等待 ${delay}ms 后重试...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      if (!response) {
+        throw lastError || new Error('所有重试尝试都失败了');
+      }
 
     if (!response.ok) {
       throw new Error(`API 请求失败: ${response.statusText}`);
@@ -293,7 +375,13 @@ export const generateImage = async (
 
     // 第三步：下载第一张图片
     console.log("正在下载生成的图像...");
-    const imageBuffer = await downloadImage(imageUrls[0]);
+    let imageBuffer: Buffer;
+    try {
+      imageBuffer = await downloadImage(imageUrls[0]);
+    } catch (downloadError) {
+      console.error("图片下载失败:", downloadError);
+      throw new Error(`图片下载失败: ${downloadError instanceof Error ? downloadError.message : '未知错误'}`);
+    }
 
     // 第四步：上传到Vercel Blob
     console.log("正在上传图像到Blob存储...");

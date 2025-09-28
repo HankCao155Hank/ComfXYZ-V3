@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,17 +10,18 @@ import { GenerationStatus } from './generation-status';
 import { ImageReveal } from './image-reveal';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
-import { useGenerationStore } from '@/lib/stores/useGenerationStore';
+// import { useGenerationStore } from '@/lib/stores/useGenerationStore'; // 暂时未使用
 
+// 定义Generation接口
 interface Generation {
   id: string;
   workflowId: string;
-  workflow: {
+  workflow?: {
     id: string;
     name: string;
     description?: string;
   };
-  status: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
   blobUrl?: string;
   errorMsg?: string;
   startedAt: string;
@@ -48,7 +49,7 @@ export function RealTimeGeneration({
   onDelete
 }: RealTimeGenerationProps) {
   // 使用全局状态管理
-  const { generations, loading, refresh, hasRunningTasks } = useGlobalPolling({
+  const { generations, loading, refresh } = useGlobalPolling({
     enabled: autoRefresh,
     interval: 2000, // 2秒轮询间隔
     limit: 10
@@ -65,8 +66,10 @@ export function RealTimeGeneration({
 
   // 监听完成状态变化
   useEffect(() => {
-    generations.forEach((gen: Generation) => {
-      if (gen.status === 'completed' && gen.blobUrl && onComplete) {
+    if (!onComplete) return;
+    
+    generations.forEach((gen) => {
+      if (gen.status === 'completed' && gen.blobUrl) {
         onComplete(gen);
       }
     });
@@ -142,8 +145,8 @@ export function RealTimeGeneration({
       });
 
       if (response.ok) {
-        // 删除成功，从列表中移除
-        setGenerations(prev => prev.filter(g => g.id !== generation.id));
+        // 删除成功，刷新列表
+        refresh();
         setDeleteDialog({ isOpen: false, generation: null });
         
         // 调用父组件的删除回调
@@ -180,8 +183,8 @@ export function RealTimeGeneration({
 
       if (response.ok) {
         const result = await response.json();
-        // 删除成功，从列表中移除
-        setGenerations(prev => prev.filter(g => !selectedGenerations.includes(g.id)));
+        // 删除成功，刷新列表
+        refresh();
         setSelectedGenerations([]);
         setShowBatchActions(false);
         alert(`已删除 ${result.deletedCount} 条记录`);
@@ -239,7 +242,6 @@ export function RealTimeGeneration({
             <Sparkles className="w-5 h-5 text-purple-500" />
             实时生成状态
           </h3>
-          <p className="text-sm text-muted-foreground">实时跟踪图像生成进度和结果</p>
         </div>
         <div className="flex items-center gap-2">
           {generations.length > 0 && (
@@ -339,7 +341,7 @@ export function RealTimeGeneration({
                   />
                 )}
                 {getStatusIcon(generation.status)}
-                <CardTitle className="text-base">{generation.workflow.name}</CardTitle>
+                <CardTitle className="text-base">{generation.workflow?.name || '未知工作流'}</CardTitle>
                 <Badge variant="outline" className={`text-white ${getStatusColor(generation.status)}`}>
                   {getStatusText(generation.status)}
                 </Badge>
@@ -406,7 +408,7 @@ export function RealTimeGeneration({
               <ImageReveal
                 imageUrl={generation.blobUrl}
                 prompt={generation.actualPrompt || ''}
-                workflowName={generation.workflow.name}
+                workflowName={generation.workflow?.name || '未知工作流'}
                 generationId={generation.id}
                 onPreview={() => setSelectedImage(generation.blobUrl!)}
                 onDownload={() => {
@@ -487,7 +489,7 @@ export function RealTimeGeneration({
         onConfirm={() => deleteDialog.generation && handleDeleteGeneration(deleteDialog.generation)}
         title="删除生成记录"
         message="确定要删除这条生成记录吗？"
-        itemName={deleteDialog.generation?.workflow.name}
+        itemName={deleteDialog.generation?.workflow?.name || '未知工作流'}
         isLoading={deleting}
       />
     </div>

@@ -16,6 +16,13 @@ interface Generation {
     name: string;
     description?: string;
   };
+  actualPrompt?: string;
+  actualNegativePrompt?: string;
+  actualWidth?: number;
+  actualHeight?: number;
+  actualSteps?: number;
+  actualCfg?: number;
+  actualSeed?: string;
 }
 
 interface GenerationStore {
@@ -46,25 +53,31 @@ export const useGenerationStore = create<GenerationStore>()(
     hasRunningTasks: false,
 
     // Actions
-    setGenerations: (generations) => set({ 
-      generations,
-      lastFetch: Date.now(),
-      hasRunningTasks: generations.some(gen => 
+    setGenerations: (generations) => {
+      const hasRunningTasks = generations.some(gen => 
         gen.status === 'pending' || gen.status === 'running'
-      )
-    }),
+      );
+      set({ 
+        generations,
+        lastFetch: Date.now(),
+        hasRunningTasks
+      });
+    },
 
     setLoading: (loading) => set({ loading }),
 
-    updateGeneration: (id, updates) => set((state) => ({
-      generations: state.generations.map(gen => 
+    updateGeneration: (id, updates) => set((state) => {
+      const updatedGenerations = state.generations.map(gen => 
         gen.id === id ? { ...gen, ...updates } : gen
-      ),
-      hasRunningTasks: state.generations.some(gen => 
-        (gen.id === id ? { ...gen, ...updates } : gen).status === 'pending' || 
-        (gen.id === id ? { ...gen, ...updates } : gen).status === 'running'
-      )
-    })),
+      );
+      const hasRunningTasks = updatedGenerations.some(gen => 
+        gen.status === 'pending' || gen.status === 'running'
+      );
+      return {
+        generations: updatedGenerations,
+        hasRunningTasks
+      };
+    }),
 
     checkRunningTasks: () => set((state) => ({
       hasRunningTasks: state.generations.some(gen => 
@@ -75,9 +88,16 @@ export const useGenerationStore = create<GenerationStore>()(
     fetchGenerations: async (limit = 50, workflowId?: string) => {
       const state = get();
       
-      // 防止过于频繁的请求（最多1秒一次）
+      // 防止过于频繁的请求（最多5秒一次）
       const now = Date.now();
-      if (now - state.lastFetch < 1000) {
+      if (now - state.lastFetch < 5000) {
+        console.log('跳过请求：过于频繁');
+        return;
+      }
+
+      // 如果正在加载中，跳过请求
+      if (state.loading) {
+        console.log('跳过请求：正在加载中');
         return;
       }
 

@@ -6,7 +6,8 @@ class PollingManager {
   private isPolling = false;
   private subscribers: Set<() => Promise<void>> = new Set();
   private lastFetch = 0;
-  private readonly MIN_INTERVAL = 1000; // 最小间隔1秒
+  private readonly MIN_INTERVAL = 2000; // 最小间隔2秒
+  private debounceTimer: NodeJS.Timeout | null = null;
 
   private constructor() {}
 
@@ -53,16 +54,22 @@ class PollingManager {
 
       this.lastFetch = now;
 
-      // 执行所有订阅者的回调
-      const promises = Array.from(this.subscribers).map(callback => callback());
-      await Promise.allSettled(promises);
+      // 执行所有订阅者的回调，使用防抖机制
+      if (this.subscribers.size > 0) {
+        const promises = Array.from(this.subscribers).map(callback => 
+          callback().catch(error => {
+            console.warn('轮询回调执行失败:', error);
+          })
+        );
+        await Promise.allSettled(promises);
+      }
     };
 
-    // 立即执行一次
-    poll();
+    // 延迟执行，避免立即执行
+    setTimeout(poll, 1000);
 
-    // 设置定时轮询（2秒间隔）
-    this.intervalId = setInterval(poll, 2000);
+    // 设置定时轮询（3秒间隔，减少频率）
+    this.intervalId = setInterval(poll, 3000);
   }
 
   // 停止轮询
@@ -77,19 +84,31 @@ class PollingManager {
     }
   }
 
-  // 手动触发轮询
+  // 手动触发轮询 - 使用防抖机制
   async triggerPolling() {
     if (this.subscribers.size === 0) return;
 
-    const now = Date.now();
-    if (now - this.lastFetch < this.MIN_INTERVAL) {
-      return;
+    // 清除之前的防抖定时器
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
     }
 
-    this.lastFetch = now;
-    
-    const promises = Array.from(this.subscribers).map(callback => callback());
-    await Promise.allSettled(promises);
+    // 设置防抖延迟
+    this.debounceTimer = setTimeout(async () => {
+      const now = Date.now();
+      if (now - this.lastFetch < this.MIN_INTERVAL) {
+        return;
+      }
+
+      this.lastFetch = now;
+      
+      const promises = Array.from(this.subscribers).map(callback => 
+        callback().catch(error => {
+          console.warn('手动轮询回调执行失败:', error);
+        })
+      );
+      await Promise.allSettled(promises);
+    }, 500); // 500ms防抖延迟
   }
 
   // 获取当前状态

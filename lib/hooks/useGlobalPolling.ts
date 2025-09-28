@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useGenerationStore } from '../stores/useGenerationStore';
 import { pollingManager } from '../utils/pollingManager';
 
@@ -9,58 +9,60 @@ interface UseGlobalPollingOptions {
   enabled?: boolean; // 是否启用轮询
   limit?: number; // 获取记录数量限制
   workflowId?: string; // 特定工作流ID
+  generationId?: string; // 特定生成任务ID
 }
 
 export function useGlobalPolling({
-  interval = 2000, // 默认2秒，确保不超过1秒一次的要求
+  interval: _interval = 2000, // 默认2秒，确保不超过1秒一次的要求
   enabled = true,
   limit = 50,
-  workflowId
+  workflowId,
+  generationId
 }: UseGlobalPollingOptions = {}) {
   const {
     generations,
     hasRunningTasks,
     fetchGenerations,
-    setLoading
+    loading
   } = useGenerationStore();
   
-  const callbackRef = useRef<() => Promise<void>>();
+  const callbackRef = useRef<() => Promise<void>>(undefined);
 
-  // 创建轮询回调函数
-  const createPollingCallback = () => {
+  // 创建轮询回调函数 - 使用useCallback避免重复创建
+  const createPollingCallback = useCallback(() => {
     return async () => {
-      // 只有在有运行中任务时才轮询
-      if (hasRunningTasks && enabled) {
+      if (enabled) {
         await fetchGenerations(limit, workflowId);
       }
     };
-  };
+  }, [enabled, fetchGenerations, limit, workflowId]);
 
-  // 手动刷新
-  const refresh = async () => {
+  // 手动刷新 - 使用useCallback稳定函数引用
+  const refresh = useCallback(async () => {
     await fetchGenerations(limit, workflowId);
-  };
+  }, [fetchGenerations, limit, workflowId]);
 
   useEffect(() => {
+    // 完全禁用自动轮询，只允许手动刷新
     if (!enabled) return;
 
-    // 创建新的回调函数
-    callbackRef.current = createPollingCallback();
-    
-    // 订阅轮询管理器
-    pollingManager.subscribe(callbackRef.current);
+    // 只在有特定生成任务时才启用轮询
+    if (generationId) {
+      callbackRef.current = createPollingCallback();
+      pollingManager.subscribe(callbackRef.current);
+    }
 
     return () => {
       if (callbackRef.current) {
         pollingManager.unsubscribe(callbackRef.current);
       }
     };
-  }, [enabled, hasRunningTasks, limit, workflowId]);
+  }, [enabled, generationId, createPollingCallback]);
 
   return {
     generations,
     hasRunningTasks,
-    loading: useGenerationStore.getState().loading,
+    loading,
     refresh,
     isPolling: pollingManager.getStatus().isPolling
   };

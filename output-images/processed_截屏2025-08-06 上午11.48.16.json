@@ -1,0 +1,22 @@
+{
+  "originalFile": "截屏2025-08-06 上午11.48.16.png",
+  "taskId": "t_mt1a3i5n7ba8e206b9-94cc-44d0-bf28-65c0df8e1cb6",
+  "status": 10,
+  "progress": 1,
+  "processedAt": "2025-09-24T07:22:51.912Z",
+  "parameters": {
+    "model": "",
+    "model_hash": "",
+    "prompt": "",
+    "negative_prompt": "",
+    "seed": null,
+    "width": 0,
+    "height": 0,
+    "denoising_strength": 0,
+    "steps": 0,
+    "clip_skip": 0,
+    "sampler_index": "",
+    "batch_size": 0
+  },
+  "predictElapsed": 10000
+}

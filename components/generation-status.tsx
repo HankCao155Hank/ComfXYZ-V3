@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -16,7 +16,7 @@ interface GenerationStatusProps {
 
 export function GenerationStatus({ generationId, onComplete, onError }: GenerationStatusProps) {
   // 使用全局状态管理
-  const { generations, loading, refresh } = useGlobalPolling({
+  const { refresh } = useGlobalPolling({
     enabled: true,
     interval: 2000, // 2秒轮询间隔
     limit: 10
@@ -32,34 +32,34 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
 
   // 监听generation状态变化
   useEffect(() => {
-    if (generation) {
-      setStatus(generation.status);
-      
-      // 根据状态设置进度
-      switch (generation.status) {
-        case 'pending':
-          setProgress(10);
-          break;
-        case 'running':
-          // 模拟运行进度（基于时间）
-          const elapsed = Date.now() - startTime;
-          const estimatedTotal = 120000; // 预估2分钟完成
-          const timeProgress = Math.min((elapsed / estimatedTotal) * 80, 80); // 最多80%
-          setProgress(20 + timeProgress);
-          break;
-        case 'completed':
-          setProgress(100);
-          if (generation.blobUrl && onComplete) {
-            onComplete(generation.blobUrl);
-          }
-          break;
-        case 'failed':
-          setProgress(0);
-          if (generation.errorMsg && onError) {
-            onError(generation.errorMsg);
-          }
-          break;
-      }
+    if (!generation) return;
+    
+    setStatus(generation.status);
+    
+    // 根据状态设置进度
+    switch (generation.status) {
+      case 'pending':
+        setProgress(10);
+        break;
+      case 'running':
+        // 模拟运行进度（基于时间）
+        const elapsed = Date.now() - startTime;
+        const estimatedTotal = 120000; // 预估2分钟完成
+        const timeProgress = Math.min((elapsed / estimatedTotal) * 80, 80); // 最多80%
+        setProgress(20 + timeProgress);
+        break;
+      case 'completed':
+        setProgress(100);
+        if (generation.blobUrl && onComplete) {
+          onComplete(generation.blobUrl);
+        }
+        break;
+      case 'failed':
+        setProgress(0);
+        if (generation.errorMsg && onError) {
+          onError(generation.errorMsg);
+        }
+        break;
     }
   }, [generation, onComplete, onError, startTime]);
 

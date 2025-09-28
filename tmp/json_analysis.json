@@ -1,0 +1,32 @@
+{
+  "fileInfo": {
+    "path": "/Users/hank/Desktop/project/comfxyz-v3/output-images/meitu_result.json",
+    "size": 710,
+    "lastModified": "2025-09-24T09:28:25.754Z"
+  },
+  "structure": {
+    "topLevelKeys": [
+      "originalImageUrl",
+      "taskId",
+      "status",
+      "timestamp",
+      "result"
+    ],
+    "hasResult": true,
+    "hasParameters": true,
+    "hasImageData": true
+  },
+  "imageInfo": [
+    {
+      "type": "original",
+      "url": "http://tezign-assets-test2.tezign.com/001a7d11f9fd6b8c3a5a1917709efe8d.jpg?OSSAccessKeyId=LTAI5tDubGKMRMroG8MuTLZo&Expires=1762304699&Signature=hKqsVY4lH2tQwzpfmseqmPAbHUI%3D",
+      "description": "用户上传的原始图片"
+    }
+  ],
+  "analysis": {
+    "isComplexFormat": false,
+    "hasLayerData": false,
+    "hasTemplateData": false,
+    "format": "simple_response"
+  }
+}

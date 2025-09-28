@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SmartImage } from './smart-image';
-import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
+import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, Edit } from 'lucide-react';
 import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
-import { useGenerationStore } from '@/lib/stores/useGenerationStore';
+// import { useGenerationStore } from '@/lib/stores/useGenerationStore';
 
 interface XYBatchResult {
   batchId: string;
@@ -47,9 +47,10 @@ interface Generation {
 interface XYGridDisplayProps {
   batchResult: XYBatchResult;
   onRefresh?: () => void;
+  onReEdit?: () => void;
 }
 
-export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
+export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
   // 使用全局状态管理
   const { generations: allGenerations, loading, refresh } = useGlobalPolling({
     enabled: true,
@@ -62,6 +63,37 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
     acc[gen.id] = gen;
     return acc;
   }, {} as Record<string, Generation>);
+  
+  // 调试日志
+  console.log('XYGridDisplay - batchResult:', batchResult);
+  console.log('XYGridDisplay - allGenerations:', allGenerations);
+  console.log('XYGridDisplay - generations:', generations);
+  
+  // 计算进度和状态
+  const getProgress = () => {
+    if (!batchResult.generations || batchResult.generations.length === 0) return 0;
+    const completedCount = batchResult.generations.filter(gen => {
+      const generation = generations[gen.generationId];
+      return generation && generation.status === 'completed';
+    }).length;
+    return (completedCount / batchResult.generations.length) * 100;
+  };
+
+  const getCompletedCount = () => {
+    if (!batchResult.generations || batchResult.generations.length === 0) return 0;
+    return batchResult.generations.filter(gen => {
+      const generation = generations[gen.generationId];
+      return generation && generation.status === 'completed';
+    }).length;
+  };
+
+  const getRunningCount = () => {
+    if (!batchResult.generations || batchResult.generations.length === 0) return 0;
+    return batchResult.generations.filter(gen => {
+      const generation = generations[gen.generationId];
+      return generation && generation.status === 'running';
+    }).length;
+  };
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{
@@ -103,16 +135,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
     }
   };
 
-  const getCompletedCount = () => {
-    return batchResult.generations.filter((gen: { generationId: string }) => 
-      getGenerationStatus(gen.generationId) === 'completed'
-    ).length;
-  };
 
-  const getProgress = () => {
-    const completed = getCompletedCount();
-    return (completed / batchResult.totalCombinations) * 100;
-  };
 
   const downloadAllImages = async () => {
     const completedGenerations = batchResult.generations.filter((gen: { generationId: string }) => {
@@ -144,8 +167,8 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
     }
   };
 
-  // 导出到CSV/Excel
-  const exportToFile = async (format: 'csv' | 'excel') => {
+  // 导出到Excel
+  const exportToExcel = async () => {
     try {
       const response = await fetch('/api/export/xy-batch', {
         method: 'POST',
@@ -154,7 +177,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
         },
         body: JSON.stringify({
           batchResult,
-          format
+          format: 'excel'
         }),
       });
 
@@ -166,7 +189,7 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `xy-batch-${batchResult.batchId}.${format === 'excel' ? 'xlsx' : 'csv'}`;
+      link.download = `xy-batch-${batchResult.batchId}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -205,7 +228,8 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   // 初始加载
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 移除refresh依赖，只在组件挂载时执行一次
 
   return (
     <div className="space-y-6">
@@ -216,13 +240,19 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Grid className="w-5 h-5 text-blue-500" />
-                XY 轴批量生成结果
+                批量生成结果
               </CardTitle>
               <CardDescription>
                 {batchResult.xAxisCount} × {batchResult.yAxisCount} = {batchResult.totalCombinations} 张图片
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              {onReEdit && (
+                <Button onClick={onReEdit} variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  重新编辑
+                </Button>
+              )}
               <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 刷新
@@ -235,22 +265,13 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
               )}
               <div className="flex gap-1">
                 <Button 
-                  onClick={() => exportToFile('excel')} 
+                  onClick={exportToExcel} 
                   variant="outline" 
                   size="sm"
                   disabled={exporting}
                 >
                   <FileSpreadsheet className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
                   Excel
-                </Button>
-                <Button 
-                  onClick={() => exportToFile('csv')} 
-                  variant="outline" 
-                  size="sm"
-                  disabled={exporting}
-                >
-                  <FileText className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
-                  CSV
                 </Button>
               </div>
             </div>
@@ -264,6 +285,11 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
               <span>{getCompletedCount()} / {batchResult.totalCombinations} ({Math.round(getProgress())}%)</span>
             </div>
             <Progress value={getProgress()} className="h-3" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>运行中: {getRunningCount()}</span>
+              <span>已完成: {getCompletedCount()}</span>
+              <span>总计: {batchResult.totalCombinations}</span>
+            </div>
           </div>
 
           {/* 轴信息 */}
@@ -295,10 +321,10 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
               <div className="text-sm text-blue-700">
                 <p className="font-medium mb-1">📊 数据导出功能（含图片）</p>
                 <p className="text-xs">
-                  点击 Excel 或 CSV 按钮可以导出完整的参数组合数据，包括：
+                  点击 Excel 按钮可以导出完整的参数组合数据，包括：
                   生成状态、实际参数、图片信息、图片尺寸、生成时间等详细信息。
                   <br />
-                  <span className="font-medium">✨ 新功能：</span>Excel文件包含图片预览工作表，CSV文件包含图片信息表。图片通过URL链接访问。
+                  <span className="font-medium">✨ 新功能：</span>Excel文件包含图片预览工作表，图片通过URL链接访问。
                 </p>
               </div>
             </div>
@@ -322,16 +348,22 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                 gridTemplateColumns: `80px repeat(${batchResult.xAxisCount}, 1fr)`
               }}>
                 <div></div>
-                {Array.from(new Set(batchResult.generations.map((gen: { xValue: string }) => gen.xValue))).map((xValue, index) => (
-                  <div key={index} className="text-center p-2 bg-blue-50 rounded text-xs font-medium">
-                    <div className="text-blue-700">{batchResult.xAxisNode}.{batchResult.xAxisInput}</div>
-                    <div className="text-blue-600 font-mono">{xValue}</div>
+                {batchResult.generations && batchResult.generations.length > 0 ? 
+                  Array.from(new Set(batchResult.generations.map((gen: { xValue: string }) => gen.xValue))).map((xValue, index) => (
+                    <div key={index} className="text-center p-2 bg-blue-50 rounded text-xs font-medium">
+                      <div className="text-blue-700">{batchResult.xAxisNode}.{batchResult.xAxisInput}</div>
+                      <div className="text-blue-600 font-mono">{xValue}</div>
+                    </div>
+                  )) : 
+                  <div className="text-center p-2 bg-gray-50 rounded text-xs text-gray-500">
+                    等待生成任务...
                   </div>
-                ))}
+                }
               </div>
 
               {/* 网格内容 */}
-              {Array.from(new Set(batchResult.generations.map((gen: { yValue: string }) => gen.yValue))).map((yValue, yIndex) => (
+              {batchResult.generations && batchResult.generations.length > 0 ? 
+                Array.from(new Set(batchResult.generations.map((gen: { yValue: string }) => gen.yValue))).map((yValue, yIndex) => (
                 <div key={yIndex} className="grid gap-2 mb-2" style={{
                   gridTemplateColumns: `80px repeat(${batchResult.xAxisCount}, 1fr)`
                 }}>
@@ -384,7 +416,12 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
                       );
                     })}
                 </div>
-              ))}
+              )) : 
+                <div className="text-center p-8 text-gray-500">
+                  <div className="text-lg font-medium mb-2">等待生成任务启动...</div>
+                  <div className="text-sm">生成任务正在后台准备中，请稍候</div>
+                </div>
+              }
             </div>
           </div>
         </CardContent>

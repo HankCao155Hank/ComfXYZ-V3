@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // POST - 创建 Nano Banana 工作流
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     console.log('🚀 开始创建 Nano Banana 工作流...');
 

@@ -40,7 +40,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
       yAxisInput,
     yAxisValues,
     defaultParams,
-    imageCount,
+    // imageCount, // 暂时未使用
     uploadingImages,
     uploadedImages,
     isNanoBananaWorkflow,
@@ -73,7 +73,7 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid className="w-5 h-5 text-blue-500" />
-            XY 轴批量生成配置
+            批量生成配置
           </CardTitle>
           <CardDescription>
             基于工作流节点结构配置 X 轴和 Y 轴参数，系统将生成所有参数组合的图像网格
@@ -89,6 +89,23 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
 
           {selectedWorkflow && (
             <>
+              {/* 默认参数配置 */}
+              <DefaultParamsConfig
+                selectedWorkflow={selectedWorkflow}
+                defaultParams={defaultParams}
+                xAxisNode={xAxisNode}
+                xAxisInput={xAxisInput}
+                yAxisNode={yAxisNode}
+                yAxisInput={yAxisInput}
+                isNanoBananaWorkflow={isNanoBananaWorkflow}
+                uploadingImages={uploadingImages}
+                uploadedImages={uploadedImages}
+                onParamChange={updateDefaultParam}
+                onImageUpload={handleImageUpload}
+                onAddImageInput={addImageInput}
+                getNodeInputLabel={getNodeInputLabel}
+              />
+
           {/* X轴配置 */}
               <AxisConfig
                 axisType="x"
@@ -122,23 +139,6 @@ export function XYBatchGenerator({ onGenerate, isGenerating }: XYBatchGeneratorP
                 onAddValue={addYAxisValue}
                 onRemoveValue={removeYAxisValue}
                 onImageUpload={handleImageUpload}
-                getNodeInputLabel={getNodeInputLabel}
-              />
-
-              {/* 默认参数配置 */}
-              <DefaultParamsConfig
-                selectedWorkflow={selectedWorkflow}
-                defaultParams={defaultParams}
-                xAxisNode={xAxisNode}
-                xAxisInput={xAxisInput}
-                yAxisNode={yAxisNode}
-                yAxisInput={yAxisInput}
-                isNanoBananaWorkflow={isNanoBananaWorkflow}
-                uploadingImages={uploadingImages}
-                uploadedImages={uploadedImages}
-                onParamChange={updateDefaultParam}
-                onImageUpload={handleImageUpload}
-                onAddImageInput={addImageInput}
                 getNodeInputLabel={getNodeInputLabel}
               />
 

@@ -70,10 +70,10 @@ export function DefaultParamsConfig({
                 <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                   <p className="text-xs text-yellow-800 font-medium">提示词建议：</p>
                   <p className="text-xs text-yellow-700 mt-1">
-                    请使用详细、具体的描述，例如："一张可爱风格的贴纸，描绘了一只开心的小熊猫戴着迷你竹叶帽，正在咀嚼一片绿色竹叶。设计采用粗壮、干净的描边，简单的赛璐璐上色，配色鲜艳。背景必须为白色。"
+                    请使用详细、具体的描述，例如：&ldquo;一张可爱风格的贴纸，描绘了一只开心的小熊猫戴着迷你竹叶帽，正在咀嚼一片绿色竹叶。设计采用粗壮、干净的描边，简单的赛璐璐上色，配色鲜艳。背景必须为白色。&rdquo;
                   </p>
                   <p className="text-xs text-yellow-600 mt-1">
-                    避免使用过于简单的词汇，如"变得更牛逼"等。
+                    避免使用过于简单的词汇，如&ldquo;变得更牛逼&rdquo;等。
                   </p>
                 </div>
               </div>
@@ -104,12 +104,28 @@ export function DefaultParamsConfig({
             return (
               <div key={nodeId} className="border p-4 rounded-md space-y-3">
                 <h4 className="text-md font-semibold">
-                  节点 {nodeId} ({(selectedWorkflow?.nodeData[nodeId] as { class_type?: string })?.class_type || '未知类型'})
-                  {(xAxisNode === nodeId || yAxisNode === nodeId) && (
-                    <span className="text-xs text-blue-600 ml-2">
-                      {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
-                      {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
-                    </span>
+                  {isNanoBananaWorkflow ? (
+                    // Nano Banana工作流使用简洁显示
+                    <>
+                      {nodeId}
+                      {(xAxisNode === nodeId || yAxisNode === nodeId) && (
+                        <span className="text-xs text-blue-600 ml-2">
+                          {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
+                          {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    // 其他工作流使用原有显示
+                    <>
+                      节点 {nodeId} ({(selectedWorkflow?.nodeData[nodeId] as { class_type?: string })?.class_type || '未知类型'})
+                      {(xAxisNode === nodeId || yAxisNode === nodeId) && (
+                        <span className="text-xs text-blue-600 ml-2">
+                          {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
+                          {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
+                        </span>
+                      )}
+                    </>
                   )}
                 </h4>
                 {filteredInputs.map(([inputKey, value]) => (
@@ -130,8 +146,8 @@ export function DefaultParamsConfig({
                       onImageUpload={onImageUpload}
                     />
                     
-                    {/* 在image1后面添加增加更多照片的按钮 */}
-                    {isNanoBananaWorkflow && inputKey === 'image1' && (
+                    {/* 在prompt后面添加增加更多照片的按钮 */}
+                    {isNanoBananaWorkflow && inputKey === 'prompt' && (
                       <div className="mt-2">
                         <Button
                           type="button"

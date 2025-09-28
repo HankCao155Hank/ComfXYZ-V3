@@ -23,16 +23,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 构建删除条件
+    // 构建删除条件 - 允许删除没有关联工作流的记录，或者关联到当前用户工作流的记录，或者没有用户关联的工作流记录
     const whereCondition: {
       id: { in: string[] };
-      workflow: { userId: string };
+      OR: Array<{
+        workflowId: null;
+      } | {
+        workflow: { userId: string };
+      } | {
+        workflow: { userId: null };
+      }>;
       status?: string;
     } = {
       id: { in: generationIds },
-      workflow: {
-        userId: session.user.id // 只删除当前用户的工作流记录
-      }
+      OR: [
+        { workflowId: null }, // 没有关联工作流的记录
+        { workflow: { userId: session.user.id } }, // 关联到当前用户工作流的记录
+        { workflow: { userId: null } } // 关联到没有用户的工作流记录（系统默认工作流）
+      ]
     };
 
     // 如果指定了状态过滤，添加状态条件

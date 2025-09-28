@@ -1,0 +1,29 @@
+{
+    "request_id": "",
+    "trace_id": "",
+    "code": 0,
+    "error_code": 0,
+    "message": "success",
+    "data": {
+        "status": 10,
+        "result": {
+            "id": "t_mt1a3i5n...",
+            "parameters": {
+                "return_json_data": {
+                    "code": 0,
+                    "cost_time": "11",
+                    "error_message": "",
+                    "json_data": "{\"editMode\": 1, \"extraInfo\": {}, \"name\": \"\", \"preview\": \"https://deepnet-models.obs.cn-north-4.myhuaweicloud.com/deepnet/cloud/19066608-8f0f-11f0-8fbc-fa163ebeb5f8.jpg\", \"referenceLine\": {\"lines\": [], \"lock\": false, \"show\": true}, \"subject\": \"\", \"templateConf\": [{\"editorColor\": \"\", \"height\": 605, \"layers\": [{\"id\": \"layer_000_background\", \"layerType\": \"bg\", \"width\": 283, \"height\": 605, \"left\": 0, \"top\": 0, \"rotate\": 0, \"opacity\": 1, \"lock\": false, \"children\": [], \"shine\": false, \"url\": \"https://deepnet-models.obs.cn-north-4.myhuaweicloud.com/deepnet/cloud/1ef7cdc2-8f0f-11f0-ae85-fa163ebeb87d.png\", \"cutoutMaskURL\": \"\", \"maskURL\": \"\", \"stretchOption\": 0, \"naturalWidth\": 283, \"naturalHeight\": 605, \"imageTransform\": {\"offsetX\": 0, \"offsetY\": 0, \"rotate\": 0, \"scale\": 1, \"flipH\": false, \"flipV\": false, \"widthRatio\": 1, \"heightRatio\": 1}, \"hidden\": false, \"maskType\": 0, \"parentId\": \"\", \"title\": \"\", \"materialIds\": {}, \"backgroundColor\": \"#FFFFFFFF\", \"backgroundGradient\": null}, {\"id\": \"layer_001_img\", \"layerType\": \"img\", \"width\": 186, \"height\": 596, \"left\": 48, \"top\": 0, \"rotate\": 0, \"opacity\": 1, \"lock\": false, \"shine\": false, \"url\": \"https://deepnet-models.obs.cn-north-4.myhuaweicloud.com/deepnet/cloud/1cc64ca4-8f0f-11f0-96ac-fa163ebeb5f8.png\", \"cutoutMaskURL\": \"\", \"maskURL\": \"\", \"stretchOption\": 1, \"naturalWidth\": 186, \"naturalHeight\": 596, \"imageTransform\": {\"offsetX\": 0, \"offsetY\": 0, \"rotate\": 0, \"scale\": 1, \"flipH\": false, \"flipV\": false, \"widthRatio\": 1, \"heightRatio\": 1}, \"effect\": null, \"filter\": null, \"hidden\": false, \"maskType\": 0, \"category\": 1, \"mode\": 0, \"parentId\": \"\", \"title\": \"\", \"children\": [], \"box\": [48, 0, 234, 596]}, {\"id\": \"layer_002_img\", \"layerType\": \"img\", \"width\": 71, \"height\": 219, \"left\": 93, \"top\": 302, \"rotate\": 0, \"opacity\": 1, \"lock\": false, \"shine\": false, \"url\": \"https://deepnet-models.obs.cn-north-4.myhuaweicloud.com/deepnet/cloud/1a6f3ccc-8f0f-11f0-99b5-fa163ebeb5f8.png\", \"cutoutMaskURL\": \"\", \"maskURL\": \"\", \"stretchOption\": 1, \"naturalWidth\": 71, \"naturalHeight\": 219, \"imageTransform\": {\"offsetX\": 0, \"offsetY\": 0, \"rotate\": 0, \"scale\": 1, \"flipH\": false, \"flipV\": false, \"widthRatio\": 1, \"heightRatio\": 1}, \"effect\": null, \"filter\": null, \"hidden\": false, \"maskType\": 0, \"category\": 1, \"mode\": 0, \"parentId\": \"\", \"title\": \"\", \"children\": [], \"box\": [93, 302, 164, 521]}], \"originId\": null, \"settingType\": null, \"threshold\": 0, \"width\": 283}], \"text_graphic_box_info\": [], \"version\": \"11.0.0\"}"
+                }
+            }
+        },
+        "progress": 1,
+        "predict_elapsed": 10000,
+        "create_time": 1757557072443,
+        "task_id": "t_mt1a3i5n7bfb8ef59b-8c3e-4403-a16e-3118c47967a6",
+        "custom_task_id": "",
+        "trace_id": "",
+        "client_info": "",
+        "init_images": null
+    }
+}

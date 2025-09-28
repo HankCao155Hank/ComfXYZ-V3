@@ -21,7 +21,7 @@ interface XYBatchConfig {
   defaultParams: Record<string, Record<string, unknown>>;
 }
 
-export function useXYBatchLogic() {
+export function useXYBatchLogic(initialConfig?: XYBatchConfig | null) {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('');
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
@@ -69,17 +69,21 @@ export function useXYBatchLogic() {
     
     if (workflow.nodeData?.provider === 'nano_banana') {
       // 为Nano Banana工作流初始化参数（简化结构）
-      params['prompt'] = { prompt: workflow.nodeData.prompt || '' };
-      params['image1'] = { image1: (workflow.nodeData.image_urls as string[])?.[0] || '' };
-      
-      // 根据image_urls数组长度设置图片数量
       const imageUrls = workflow.nodeData.image_urls as string[] || [];
       setImageCount(Math.max(1, imageUrls.length));
       
+      // 创建统一的参数结构
+      const nanoBananaParams: Record<string, unknown> = {
+        prompt: workflow.nodeData.prompt || ''
+      };
+      
       // 动态添加图片参数
       for (let i = 1; i <= Math.max(1, imageUrls.length); i++) {
-        params[`image${i}`] = { [`image${i}`]: imageUrls[i - 1] || '' };
+        nanoBananaParams[`image${i}`] = imageUrls[i - 1] || '';
       }
+      
+      // 将所有参数放在一个节点下
+      params['nano_banana'] = nanoBananaParams;
     } else {
       // 原有的逻辑，处理其他工作流
       if (workflow.nodeData) {
@@ -414,20 +418,10 @@ export function useXYBatchLogic() {
   };
 
   const getNodeInputLabel = (nodeId: string, inputKey: string) => {
-    // 如果是Nano Banana工作流，提供中文标签
+    // 如果是Nano Banana工作流，提供简洁的标签
     if (selectedWorkflow?.nodeData?.provider === 'nano_banana') {
-      const labels: Record<string, string> = {
-        'prompt': '正面提示词',
-        'negative_prompt': '负面提示词'
-      };
-      
-      // 动态处理图片标签
-      if (inputKey.startsWith('image')) {
-        const imageNumber = inputKey.replace('image', '');
-        return `图片${imageNumber}`;
-      }
-      
-      return labels[inputKey] || inputKey;
+      // 直接返回输入字段名，去掉节点前缀
+      return inputKey;
     }
     
     // 原有逻辑
@@ -463,6 +457,27 @@ export function useXYBatchLogic() {
   useEffect(() => {
     fetchWorkflows();
   }, [fetchWorkflows]);
+
+  // 应用初始配置
+  useEffect(() => {
+    if (initialConfig && workflows.length > 0) {
+      // 设置工作流
+      setSelectedWorkflowId(initialConfig.workflowId);
+      
+      // 设置X轴配置
+      setXAxisNode(initialConfig.xAxisNode);
+      setXAxisInput(initialConfig.xAxisInput);
+      setXAxisValues(initialConfig.xAxisValues);
+      
+      // 设置Y轴配置
+      setYAxisNode(initialConfig.yAxisNode);
+      setYAxisInput(initialConfig.yAxisInput);
+      setYAxisValues(initialConfig.yAxisValues);
+      
+      // 设置默认参数
+      setDefaultParams(initialConfig.defaultParams);
+    }
+  }, [initialConfig, workflows]);
 
   return {
     // State

@@ -1,50 +1,94 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, RefreshCw, Eye, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Download, RefreshCw, Eye, Clock, CheckCircle, XCircle, AlertCircle, Trash2, Trash } from 'lucide-react';
 import { SmartImage } from './smart-image';
+import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
+// import { useGenerationStore } from '@/lib/stores/useGenerationStore'; // 暂时未使用
 
-interface Generation {
-  id: string;
-  workflowId: string;
-  workflow: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  status: string;
-  blobUrl?: string;
-  errorMsg?: string;
-  startedAt: string;
-  completedAt?: string;
-  actualPrompt?: string;
-  actualNegativePrompt?: string;
-  actualWidth?: number;
-  actualHeight?: number;
-  actualSteps?: number;
-  actualCfg?: number;
-  actualSeed?: string;
-}
+// 使用stores中的Generation类型
+// type Generation = ReturnType<typeof useGenerationStore>['generations'][0]; // 暂时未使用
 
 interface GenerationGalleryProps {
   workflowId?: string;
   limit?: number;
+  generationId?: string;
+  onComplete?: (generation: any) => void;
+  autoRefresh?: boolean;
 }
 
-export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryProps) {
-  // 使用全局状态管理
+export function GenerationGallery({ workflowId, limit = 50, generationId, onComplete, autoRefresh = false }: GenerationGalleryProps) {
+  // 使用全局状态管理，完全禁用自动轮询
   const { generations, loading, refresh } = useGlobalPolling({
-    enabled: true,
-    interval: 2000, // 2秒轮询间隔
+    enabled: false, // 完全禁用自动轮询
+    interval: 5000, // 增加间隔到5秒
     limit,
-    workflowId
+    workflowId,
+    generationId
   });
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    generation: any | null;
+  }>({ isOpen: false, generation: null });
+  const [deleting, setDeleting] = useState(false);
+  const [selectedGenerations, setSelectedGenerations] = useState<string[]>([]);
+  const [showBatchActions, setShowBatchActions] = useState(false);
+
+  // 计算进度条相关数据 - 使用useMemo避免重复计算
+  const progressData = useMemo(() => {
+    const total = generations.length;
+    const completed = generations.filter(gen => gen.status === 'completed').length;
+    const running = generations.filter(gen => gen.status === 'running').length;
+    const failed = generations.filter(gen => gen.status === 'failed').length;
+    const pending = generations.filter(gen => gen.status === 'pending').length;
+    
+    return {
+      total,
+      completed,
+      running,
+      failed,
+      pending,
+      progress: total > 0 ? (completed / total) * 100 : 0
+    };
+  }, [generations]);
+
+  // 监听特定生成任务的完成
+  useEffect(() => {
+    if (generationId && onComplete) {
+      const targetGeneration = generations.find(gen => gen.id === generationId);
+      if (targetGeneration && targetGeneration.status === 'completed') {
+        onComplete(targetGeneration);
+        // 任务完成后立即刷新一次，确保显示最新结果
+        setTimeout(() => {
+          refresh();
+        }, 500);
+      }
+    }
+  }, [generationId, generations, onComplete, refresh]);
+
+  // 检查是否有运行中的任务 - 使用useMemo避免重复计算
+  const hasRunningTasks = useMemo(() => 
+    generations.some(gen => gen.status === 'running' || gen.status === 'pending'),
+    [generations]
+  );
+  
+  // 只在有特定生成任务且启用自动刷新时才轮询
+  useEffect(() => {
+    if (autoRefresh && generationId) {
+      const interval = setInterval(() => {
+        refresh();
+      }, 5000); // 增加到5秒间隔
+      
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, generationId, refresh]);
 
 
   const downloadImage = async (url: string, filename: string) => {
@@ -99,10 +143,86 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
     return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
   };
 
+  const handleDeleteGeneration = async (generation: any) => {
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/generations/${generation.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // 删除成功，刷新列表
+        refresh();
+        setDeleteDialog({ isOpen: false, generation: null });
+      } else {
+        const error = await response.json();
+        console.error('删除失败:', error.error);
+        alert('删除失败: ' + error.error);
+      }
+    } catch (error) {
+      console.error('删除生成记录失败:', error);
+      alert('删除失败，请稍后重试');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedGenerations.length === 0) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/generations/batch-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          generationIds: selectedGenerations,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // 删除成功，刷新列表
+        refresh();
+        setSelectedGenerations([]);
+        setShowBatchActions(false);
+        alert(`已删除 ${result.deletedCount} 条记录`);
+      } else {
+        const error = await response.json();
+        console.error('批量删除失败:', error.error);
+        alert('批量删除失败: ' + error.error);
+      }
+    } catch (error) {
+      console.error('批量删除生成记录失败:', error);
+      alert('批量删除失败，请稍后重试');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleGenerationSelection = (generationId: string) => {
+    setSelectedGenerations(prev => 
+      prev.includes(generationId) 
+        ? prev.filter(id => id !== generationId)
+        : [...prev, generationId]
+    );
+  };
+
+  const selectAllGenerations = () => {
+    setSelectedGenerations(generations.map(g => g.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedGenerations([]);
+  };
+
   // 初始加载
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 移除refresh依赖，只在组件挂载时执行一次
 
   if (loading) {
     return <div className="text-center py-8">加载中...</div>;
@@ -117,11 +237,110 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
             {workflowId ? '工作流生成记录' : '所有生成记录'} ({generations.length} 项)
           </p>
         </div>
-        <Button onClick={refresh} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          刷新
-        </Button>
+        <div className="flex items-center gap-2">
+          {generations.length > 0 && (
+            <Button 
+              onClick={() => setShowBatchActions(!showBatchActions)} 
+              variant="outline" 
+              size="sm"
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              批量删除
+            </Button>
+          )}
+          <Button onClick={refresh} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            刷新
+          </Button>
+        </div>
       </div>
+
+      {/* 进度条显示 */}
+      {progressData.total > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">生成进度</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>总体进度</span>
+                <span>{progressData.completed} / {progressData.total} ({Math.round(progressData.progress)}%)</span>
+              </div>
+              <Progress value={progressData.progress} className="h-3" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <div className="flex gap-4">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    已完成: {progressData.completed}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 text-blue-500" />
+                    运行中: {progressData.running}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-yellow-500" />
+                    等待中: {progressData.pending}
+                  </span>
+                  {progressData.failed > 0 && (
+                    <span className="flex items-center gap-1">
+                      <XCircle className="w-3 h-3 text-red-500" />
+                      失败: {progressData.failed}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 批量操作栏 */}
+      {showBatchActions && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedGenerations.length === generations.length && generations.length > 0}
+                    onChange={selectedGenerations.length === generations.length ? clearSelection : selectAllGenerations}
+                    className="rounded"
+                  />
+                  <span className="text-sm">
+                    全选 ({selectedGenerations.length}/{generations.length})
+                  </span>
+                </div>
+                {selectedGenerations.length > 0 && (
+                  <span className="text-sm text-blue-700">
+                    已选择 {selectedGenerations.length} 条记录
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={clearSelection}
+                  variant="outline"
+                  size="sm"
+                  disabled={selectedGenerations.length === 0}
+                >
+                  取消选择
+                </Button>
+                <Button
+                  onClick={handleBatchDelete}
+                  variant="destructive"
+                  size="sm"
+                  disabled={selectedGenerations.length === 0 || deleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {deleting ? "删除中..." : `删除选中 (${selectedGenerations.length})`}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {generations.length === 0 ? (
         <div className="text-center py-12">
@@ -130,15 +349,25 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {generations.map((generation) => (
-            <Card key={generation.id} className="overflow-hidden">
+            <Card key={generation.id} className={`overflow-hidden ${selectedGenerations.includes(generation.id) ? 'ring-2 ring-blue-500' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">
-                    {generation.workflow?.name === '其他模型生成' ? 
-                      `其他模型生成 (${generation.actualPrompt ? generation.actualPrompt.substring(0, 20) + '...' : '未知'})` : 
-                      generation.workflow?.name || '未知工作流'
-                    }
-                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {showBatchActions && (
+                      <input
+                        type="checkbox"
+                        checked={selectedGenerations.includes(generation.id)}
+                        onChange={() => toggleGenerationSelection(generation.id)}
+                        className="rounded"
+                      />
+                    )}
+                    <CardTitle className="text-base">
+                      {generation.workflow?.name === '其他模型生成' ? 
+                        `其他模型生成 (${generation.actualPrompt ? generation.actualPrompt.substring(0, 20) + '...' : '未知'})` : 
+                        generation.workflow?.name || '未知工作流'
+                      }
+                    </CardTitle>
+                  </div>
                   <div className="flex items-center gap-1">
                     {getStatusIcon(generation.status)}
                     <span className="text-sm">{getStatusText(generation.status)}</span>
@@ -183,6 +412,13 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
                           )}
                         >
                           <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteDialog({ isOpen: true, generation })}
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -259,6 +495,17 @@ export function GenerationGallery({ workflowId, limit = 50 }: GenerationGalleryP
         </div>
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, generation: null })}
+        onConfirm={() => deleteDialog.generation && handleDeleteGeneration(deleteDialog.generation)}
+        title="删除生成记录"
+        message="确定要删除这条生成记录吗？"
+        itemName={deleteDialog.generation?.workflow?.name || '未知工作流'}
+        isLoading={deleting}
+      />
     </div>
   );
 }

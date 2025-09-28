@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+// import { useState } from 'react'; // 暂时未使用
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Minus, Upload, Image as ImageIcon } from 'lucide-react';
@@ -43,7 +43,7 @@ export function AxisConfig({
   onImageUpload,
   getNodeInputLabel
 }: AxisConfigProps) {
-  const axisLabel = axisType.toUpperCase() + '轴';
+  const axisLabel = axisType === 'x' ? '第一输入' : '第二输入';
   const isImageInput = inputKey === 'image' || (isNanoBananaWorkflow && inputKey.startsWith('image'));
 
   return (

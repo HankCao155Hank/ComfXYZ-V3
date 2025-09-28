@@ -14,7 +14,7 @@ interface PerformanceMonitorProps {
 
 export function PerformanceMonitor({ showDetails = false }: PerformanceMonitorProps) {
   const [status, setStatus] = useState(pollingManager.getStatus());
-  const [apiCalls, setApiCalls] = useState(0);
+  // const [apiCalls, setApiCalls] = useState(0); // 暂时未使用
   const [lastCallTime, setLastCallTime] = useState<number>(0);
   
   const { generations, hasRunningTasks } = useGenerationStore();
@@ -22,7 +22,7 @@ export function PerformanceMonitor({ showDetails = false }: PerformanceMonitorPr
   useEffect(() => {
     const interval = setInterval(() => {
       setStatus(pollingManager.getStatus());
-      setApiCalls(prev => prev + 1);
+      // setApiCalls(prev => prev + 1); // 暂时未使用
       setLastCallTime(pollingManager.getStatus().lastFetch);
     }, 1000);
 

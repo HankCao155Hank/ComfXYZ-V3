@@ -1,0 +1,23 @@
+{
+  "imageUrl": "https://xutzfzlspaiec2vw.public.blob.vercel-storage.com/generated-image-1757626626645.png",
+  "taskId": "t_mt1a3i5n7bcd12270a-a458-4820-88e1-559e24752866",
+  "status": "completed",
+  "timestamp": "2025-09-24T07:48:57.954Z",
+  "result": {
+    "id": "t_mt1a3i5n7bcd12270a-a458-4820-88e1-559e24752866",
+    "parameters": {
+      "model": "",
+      "model_hash": "",
+      "prompt": "",
+      "negative_prompt": "",
+      "seed": null,
+      "width": 0,
+      "height": 0,
+      "denoising_strength": 0,
+      "steps": 0,
+      "clip_skip": 0,
+      "sampler_index": "",
+      "batch_size": 0
+    }
+  }
+}

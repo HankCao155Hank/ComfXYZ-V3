@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { WorkflowForm } from '@/components/workflow-form';
 import { WorkflowList } from '@/components/workflow-list';
+import { UnifiedWorkflowList } from '@/components/unified-workflow-list';
 import { GenerationGallery } from '@/components/generation-gallery';
-import { RealTimeGeneration } from '@/components/real-time-generation';
 import { XYBatchGenerator } from '@/components/xy-batch-generator';
 import { XYGridDisplay } from '@/components/xy-grid-display';
 import { UserMenu } from '@/components/user-menu';
@@ -25,7 +25,7 @@ interface Workflow {
 }
 
 function HomeContent() {
-  const [activeTab, setActiveTab] = useState('comfyui-workflows');
+  const [activeTab, setActiveTab] = useState('xy-batch');
   const [showForm, setShowForm] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -46,6 +46,16 @@ function HomeContent() {
       xValue: string;
       yValue: string;
     }>;
+  } | null>(null);
+  const [lastXYConfig, setLastXYConfig] = useState<{
+    workflowId: string;
+    xAxisNode: string;
+    xAxisInput: string;
+    xAxisValues: string[];
+    yAxisNode: string;
+    yAxisInput: string;
+    yAxisValues: string[];
+    defaultParams: Record<string, Record<string, unknown>>;
   } | null>(null);
   const [isXYGenerating, setIsXYGenerating] = useState(false);
 
@@ -140,9 +150,9 @@ function HomeContent() {
           showToast(`${customParams?.provider || 'API'} 调用成功！图像已生成`);
           setActiveTab('gallery'); // 跳转到历史记录页面
         } else {
-          // ComfyUI 工作流，跳转到实时生成页面
+          // ComfyUI 工作流，跳转到历史记录页面并显示进度
           setCurrentGenerationId(result.data.generationId);
-          setActiveTab('realtime');
+          setActiveTab('gallery');
         }
       } else {
         showToast(result.error || '启动生成任务失败', 'error');
@@ -170,7 +180,7 @@ function HomeContent() {
       if (result.success) {
         showToast(`批量生成任务已启动！(${result.data.generations.length} 个任务)`);
         setCurrentGenerationId(null); // 批量生成时不设置特定ID
-        setActiveTab('realtime');
+        setActiveTab('gallery');
       } else {
         showToast(result.error || '启动批量生成任务失败', 'error');
       }
@@ -219,6 +229,7 @@ function HomeContent() {
       if (result.success) {
         showToast(`XY 批量生成已启动！(${result.data.totalCombinations} 个任务)`);
         setCurrentXYBatch(result.data);
+        setLastXYConfig(batchData); // 保存配置
         setActiveTab('xy-batch');
       } else {
         showToast(result.error || '启动 XY 批量生成失败', 'error');
@@ -258,65 +269,24 @@ function HomeContent() {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-4xl font-bold mb-2">ComfyUI 工作流管理系统</h1>
-          <p className="text-muted-foreground">
-            创建、管理和批量执行图像生成工作流，所有生成的图片都会自动保存到 Vercel Blob 存储
-          </p>
+          <h1 className="text-4xl font-bold mb-2">AI 工作流管理系统</h1>
         </div>
         <UserMenu />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="comfyui-workflows">ComfyUI工作流管理</TabsTrigger>
-          <TabsTrigger value="other-models">其他模型管理</TabsTrigger>
-          <TabsTrigger value="realtime">实时生成</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="xy-batch">批量生成</TabsTrigger>
+          <TabsTrigger value="unified-workflows">模型管理</TabsTrigger>
           <TabsTrigger value="gallery">历史记录</TabsTrigger>
-          <TabsTrigger value="xy-batch">XY轴批量</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="comfyui-workflows" className="space-y-6">
-          <WorkflowList
-            onCreateNew={handleNewWorkflow}
-            onEdit={handleEditWorkflow}
-            onGenerate={handleGenerate}
-            onBatchGenerate={handleBatchGenerate}
-            onXYBatch={() => setActiveTab('xy-batch')}
-            workflowType="comfyui"
-          />
-        </TabsContent>
-        
-        <TabsContent value="other-models" className="space-y-6">
-          <WorkflowList
-            onCreateNew={handleNewWorkflow}
-            onEdit={handleEditWorkflow}
-            onGenerate={handleGenerate}
-            onBatchGenerate={handleBatchGenerate}
-            onXYBatch={() => setActiveTab('xy-batch')}
-            workflowType="other-models"
-          />
-        </TabsContent>
-        
-        
-        <TabsContent value="realtime" className="space-y-6">
-          <RealTimeGeneration 
-            generationId={currentGenerationId || undefined}
-            onComplete={(generation) => {
-              showToast(`图像生成完成：${generation.workflow.name}`);
-            }}
-            autoRefresh={true}
-          />
-        </TabsContent>
-        
-        <TabsContent value="gallery" className="space-y-6">
-          <GenerationGallery />
-        </TabsContent>
         
         <TabsContent value="xy-batch" className="space-y-6">
           {!currentXYBatch ? (
             <XYBatchGenerator 
               onGenerate={handleXYGenerate}
               isGenerating={isXYGenerating}
+              initialConfig={lastXYConfig}
             />
           ) : (
             <div className="space-y-4">
@@ -331,9 +301,32 @@ function HomeContent() {
                 onRefresh={() => {
                   // 刷新逻辑已经在组件内部处理
                 }}
+                onReEdit={handleNewXYBatch}
               />
             </div>
           )}
+        </TabsContent>
+        
+        <TabsContent value="unified-workflows" className="space-y-6">
+          <UnifiedWorkflowList
+            onCreateNew={handleNewWorkflow}
+            onEdit={handleEditWorkflow}
+            onGenerate={handleGenerate}
+            onBatchGenerate={handleBatchGenerate}
+            onXYBatch={() => setActiveTab('xy-batch')}
+          />
+        </TabsContent>
+        
+        <TabsContent value="gallery" className="space-y-6">
+          <GenerationGallery 
+            generationId={currentGenerationId || undefined}
+            onComplete={(generation) => {
+              showToast(`图像生成完成：${generation.workflow?.name || '未知工作流'}`);
+              // 任务完成后清除currentGenerationId，停止自动刷新
+              setCurrentGenerationId(null);
+            }}
+            autoRefresh={!!currentGenerationId}
+          />
         </TabsContent>
       </Tabs>
       

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { NodeParameterForm } from '@/components/node-parameter-form';
 import { OtherModelsParameterForm } from '@/components/other-models-parameter-form';
 import { Plus, Play, Settings, Trash2, PlayCircle, Grid } from 'lucide-react';
-import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
+// import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling'; // 暂时未使用
 
 interface Workflow {
   id: string;
@@ -184,7 +184,6 @@ export function WorkflowList({ onCreateNew, onEdit, onGenerate, onBatchGenerate,
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">工作流管理</h2>
-          <p className="text-muted-foreground">管理和执行你的图像生成工作流</p>
         </div>
         <div className="flex gap-2">
           {selectedWorkflows.length > 0 && (
