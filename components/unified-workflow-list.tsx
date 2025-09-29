@@ -150,7 +150,7 @@ export function UnifiedWorkflowList({
   };
 
   const getWorkflowTypeLabel = (type: 'comfyui' | 'other-models') => {
-    return type === 'comfyui' ? 'ComfyUI' : '其他模型';
+    return type === 'comfyui' ? 'ComfyUI' : '重要模型';
   };
 
   const getProviderLabel = (workflow: Workflow) => {
@@ -372,7 +372,7 @@ export function UnifiedWorkflowList({
             size="sm"
             onClick={() => setActiveFilter('other-models')}
           >
-            其他模型 ({otherModelsWorkflows.length})
+            重要模型 ({otherModelsWorkflows.length})
           </Button>
         </div>
       </div>
@@ -431,11 +431,10 @@ export function UnifiedWorkflowList({
       {allWorkflows.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">快速操作</CardTitle>
-            <CardDescription>常用功能的快捷入口</CardDescription>
+            <CardTitle className="text-lg">全部模型</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 onClick={() => setActiveFilter('comfyui')}
@@ -451,17 +450,8 @@ export function UnifiedWorkflowList({
                 className="h-20 flex flex-col items-center justify-center space-y-2"
               >
                 <Play className="h-6 w-6" />
-                <span className="text-sm">其他模型</span>
+                <span className="text-sm">重要模型</span>
                 <span className="text-xs text-muted-foreground">{otherModelsWorkflows.length} 个</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setActiveFilter('all')}
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-              >
-                <Grid className="h-6 w-6" />
-                <span className="text-sm">全部工作流</span>
-                <span className="text-xs text-muted-foreground">{allWorkflows.length} 个</span>
               </Button>
             </div>
           </CardContent>
@@ -494,7 +484,7 @@ export function UnifiedWorkflowList({
                 </Button>
                 <Button variant="outline" onClick={onCreateNew}>
                   <Play className="w-4 h-4 mr-2" />
-                  配置其他模型
+                  配置重要模型
                 </Button>
               </div>
             </div>

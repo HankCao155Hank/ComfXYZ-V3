@@ -48,13 +48,13 @@ export function AxisConfig({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">{axisLabel} 参数配置</h3>
+      <h3 className="text-lg font-semibold">{axisLabel}</h3>
       
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{axisLabel}节点和输入</label>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-gray-700">输入参数</label>
           <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
             value={`${nodeId}-${inputKey}`}
             onChange={(e) => {
               const [newNodeId, newInputKey] = e.target.value.split('-');
@@ -70,8 +70,8 @@ export function AxisConfig({
           </select>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">{axisLabel}参数值</label>
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-gray-700">参数值</label>
           <div className="space-y-2">
             {values.map((value, index) => (
               <div key={index} className="space-y-2">
@@ -81,7 +81,7 @@ export function AxisConfig({
                       value={value}
                       onChange={(e) => onValueChange(index, e.target.value)}
                       placeholder={`${axisLabel}值 ${index + 1}`}
-                      className="flex-1"
+                      className="flex-1 h-10"
                     />
                     <input
                       type="file"
@@ -123,7 +123,7 @@ export function AxisConfig({
                       value={value}
                       onChange={(e) => onValueChange(index, e.target.value)}
                       placeholder={`${axisLabel}值 ${index + 1}`}
-                      className="flex-1"
+                      className="flex-1 h-10"
                     />
                     <Button
                       size="sm"
@@ -142,8 +142,9 @@ export function AxisConfig({
                 )}
               </div>
             ))}
-            <Button size="sm" variant="outline" onClick={onAddValue}>
-              <Plus className="w-4 h-4" />
+            <Button size="sm" variant="outline" onClick={onAddValue} className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              添加参数值
             </Button>
           </div>
         </div>

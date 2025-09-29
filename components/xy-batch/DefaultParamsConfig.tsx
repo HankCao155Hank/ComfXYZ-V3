@@ -53,31 +53,12 @@ export function DefaultParamsConfig({
           <span className="text-blue-600">注意：</span>被选为X轴或Y轴的特定字段不会显示在这里，但同一节点的其他字段仍可配置。
         </p>
         
-        {/* Nano Banana 特殊提示 */}
+        {/* Nano Banana 简化提示 */}
         {isNanoBananaWorkflow && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h4 className="text-sm font-medium text-blue-800">Nano Banana 工作流要求</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  ⚠️ 请至少提供一张输入图像（image1、image2 或 image3 中至少一个），否则批量生成将无法进行。
-                </p>
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-xs text-yellow-800 font-medium">提示词建议：</p>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    请使用详细、具体的描述，例如：&ldquo;一张可爱风格的贴纸，描绘了一只开心的小熊猫戴着迷你竹叶帽，正在咀嚼一片绿色竹叶。设计采用粗壮、干净的描边，简单的赛璐璐上色，配色鲜艳。背景必须为白色。&rdquo;
-                  </p>
-                  <p className="text-xs text-yellow-600 mt-1">
-                    避免使用过于简单的词汇，如&ldquo;变得更牛逼&rdquo;等。
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="p-2 bg-blue-50 border border-blue-200 rounded mb-3">
+            <p className="text-xs text-blue-700">
+              💡 请至少提供一张输入图像，建议使用详细的提示词描述
+            </p>
           </div>
         )}
         
@@ -102,35 +83,21 @@ export function DefaultParamsConfig({
             }
             
             return (
-              <div key={nodeId} className="border p-4 rounded-md space-y-3">
-                <h4 className="text-md font-semibold">
-                  {isNanoBananaWorkflow ? (
-                    // Nano Banana工作流使用简洁显示
-                    <>
-                      {nodeId}
-                      {(xAxisNode === nodeId || yAxisNode === nodeId) && (
-                        <span className="text-xs text-blue-600 ml-2">
-                          {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
-                          {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    // 其他工作流使用原有显示
-                    <>
-                      节点 {nodeId} ({(selectedWorkflow?.nodeData[nodeId] as { class_type?: string })?.class_type || '未知类型'})
-                      {(xAxisNode === nodeId || yAxisNode === nodeId) && (
-                        <span className="text-xs text-blue-600 ml-2">
-                          {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
-                          {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </h4>
+              <div key={nodeId} className={isNanoBananaWorkflow ? "space-y-3" : "border p-4 rounded-md space-y-3"}>
+                {!isNanoBananaWorkflow && (
+                  <h4 className="text-md font-semibold">
+                    节点 {nodeId} ({(selectedWorkflow?.nodeData[nodeId] as { class_type?: string })?.class_type || '未知类型'})
+                    {(xAxisNode === nodeId || yAxisNode === nodeId) && (
+                      <span className="text-xs text-blue-600 ml-2">
+                        {xAxisNode === nodeId && `[X轴: ${xAxisInput}]`}
+                        {yAxisNode === nodeId && `[Y轴: ${yAxisInput}]`}
+                      </span>
+                    )}
+                  </h4>
+                )}
                 {filteredInputs.map(([inputKey, value]) => (
-                  <div key={`${nodeId}-${inputKey}`} className="space-y-1">
-                    <label className="text-sm font-medium">
+                  <div key={`${nodeId}-${inputKey}`} className={isNanoBananaWorkflow ? "space-y-1" : "space-y-1"}>
+                    <label className={`${isNanoBananaWorkflow ? 'text-xs' : 'text-sm'} font-medium`}>
                       {getNodeInputLabel(nodeId, inputKey)}
                     </label>
                     <InputFieldRenderer

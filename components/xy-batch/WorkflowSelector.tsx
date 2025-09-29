@@ -18,10 +18,10 @@ interface WorkflowSelectorProps {
 
 export function WorkflowSelector({ workflows, selectedWorkflowId, onWorkflowChange }: WorkflowSelectorProps) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">选择工作流 *</label>
+    <div className="space-y-3">
+      <label className="text-sm font-medium text-gray-700">选择工作流 *</label>
       <select
-        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
         value={selectedWorkflowId}
         onChange={(e) => {
           const workflow = workflows.find((w) => w.id === e.target.value);

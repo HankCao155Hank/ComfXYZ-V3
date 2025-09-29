@@ -104,6 +104,52 @@ export function LandingPage() {
           <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
           <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
           <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
+          
+          {/* 可爱的小猫 */}
+          <div className="absolute top-1/2 right-1/6 w-32 h-32 opacity-30 animate-bounce">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
+              {/* 小猫身体 */}
+              <ellipse cx="50" cy="70" rx="25" ry="20" fill="#8B5CF6" opacity="0.8"/>
+              
+              {/* 小猫头部 */}
+              <circle cx="50" cy="45" r="20" fill="#A855F7" opacity="0.9"/>
+              
+              {/* 小猫耳朵 */}
+              <polygon points="35,30 40,15 45,30" fill="#9333EA" opacity="0.9"/>
+              <polygon points="55,30 60,15 65,30" fill="#9333EA" opacity="0.9"/>
+              
+              {/* 小猫内耳 */}
+              <polygon points="37,25 40,18 43,25" fill="#EC4899" opacity="0.7"/>
+              <polygon points="57,25 60,18 63,25" fill="#EC4899" opacity="0.7"/>
+              
+              {/* 小猫眼睛 */}
+              <circle cx="42" cy="40" r="3" fill="#1F2937"/>
+              <circle cx="58" cy="40" r="3" fill="#1F2937"/>
+              
+              {/* 小猫鼻子 */}
+              <polygon points="50,45 48,48 52,48" fill="#EC4899"/>
+              
+              {/* 小猫嘴巴 */}
+              <path d="M 50 48 Q 45 52 40 50" stroke="#1F2937" strokeWidth="1.5" fill="none"/>
+              <path d="M 50 48 Q 55 52 60 50" stroke="#1F2937" strokeWidth="1.5" fill="none"/>
+              
+              {/* 小猫胡须 */}
+              <line x1="30" y1="45" x2="35" y2="47" stroke="#1F2937" strokeWidth="1"/>
+              <line x1="30" y1="50" x2="35" y2="50" stroke="#1F2937" strokeWidth="1"/>
+              <line x1="30" y1="55" x2="35" y2="53" stroke="#1F2937" strokeWidth="1"/>
+              <line x1="70" y1="45" x2="65" y2="47" stroke="#1F2937" strokeWidth="1"/>
+              <line x1="70" y1="50" x2="65" y2="50" stroke="#1F2937" strokeWidth="1"/>
+              <line x1="70" y1="55" x2="65" y2="53" stroke="#1F2937" strokeWidth="1"/>
+              
+              {/* 小猫尾巴 */}
+              <path d="M 75 70 Q 85 60 90 70 Q 85 80 75 70" fill="#8B5CF6" opacity="0.8"/>
+              
+              {/* 小猫爪子 */}
+              <ellipse cx="40" cy="85" rx="4" ry="6" fill="#A855F7" opacity="0.8"/>
+              <ellipse cx="50" cy="85" rx="4" ry="6" fill="#A855F7" opacity="0.8"/>
+              <ellipse cx="60" cy="85" rx="4" ry="6" fill="#A855F7" opacity="0.8"/>
+            </svg>
+          </div>
         </div>
       </section>
 
