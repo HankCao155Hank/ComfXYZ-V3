@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SmartImage } from './smart-image';
-import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, Edit } from 'lucide-react';
+import { RefreshCw, Grid, Download, CheckCircle, Clock, XCircle, FileSpreadsheet, FileText } from 'lucide-react';
 import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
 // import { useGenerationStore } from '@/lib/stores/useGenerationStore';
 
@@ -47,10 +47,9 @@ interface Generation {
 interface XYGridDisplayProps {
   batchResult: XYBatchResult;
   onRefresh?: () => void;
-  onReEdit?: () => void;
 }
 
-export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
+export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   // 使用全局状态管理
   const { generations: allGenerations, loading, refresh } = useGlobalPolling({
     enabled: true,
@@ -167,8 +166,8 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
     }
   };
 
-  // 导出到Excel
-  const exportToExcel = async () => {
+  // 导出到CSV/Excel
+  const exportToFile = async (format: 'csv' | 'excel') => {
     try {
       const response = await fetch('/api/export/xy-batch', {
         method: 'POST',
@@ -177,7 +176,7 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
         },
         body: JSON.stringify({
           batchResult,
-          format: 'excel'
+          format
         }),
       });
 
@@ -189,7 +188,7 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `xy-batch-${batchResult.batchId}.xlsx`;
+      link.download = `xy-batch-${batchResult.batchId}.${format === 'excel' ? 'xlsx' : 'csv'}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -240,19 +239,13 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Grid className="w-5 h-5 text-blue-500" />
-                批量生成结果
+                XY 轴批量生成结果
               </CardTitle>
               <CardDescription>
                 {batchResult.xAxisCount} × {batchResult.yAxisCount} = {batchResult.totalCombinations} 张图片
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              {onReEdit && (
-                <Button onClick={onReEdit} variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  重新编辑
-                </Button>
-              )}
               <Button onClick={refresh} variant="outline" size="sm" disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 刷新
@@ -265,13 +258,22 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
               )}
               <div className="flex gap-1">
                 <Button 
-                  onClick={exportToExcel} 
+                  onClick={() => exportToFile('excel')} 
                   variant="outline" 
                   size="sm"
                   disabled={exporting}
                 >
                   <FileSpreadsheet className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
                   Excel
+                </Button>
+                <Button 
+                  onClick={() => exportToFile('csv')} 
+                  variant="outline" 
+                  size="sm"
+                  disabled={exporting}
+                >
+                  <FileText className={`w-4 h-4 mr-2 ${exporting ? 'animate-pulse' : ''}`} />
+                  CSV
                 </Button>
               </div>
             </div>
@@ -321,10 +323,10 @@ export function XYGridDisplay({ batchResult, onReEdit }: XYGridDisplayProps) {
               <div className="text-sm text-blue-700">
                 <p className="font-medium mb-1">📊 数据导出功能（含图片）</p>
                 <p className="text-xs">
-                  点击 Excel 按钮可以导出完整的参数组合数据，包括：
+                  点击 Excel 或 CSV 按钮可以导出完整的参数组合数据，包括：
                   生成状态、实际参数、图片信息、图片尺寸、生成时间等详细信息。
                   <br />
-                  <span className="font-medium">✨ 新功能：</span>Excel文件包含图片预览工作表，图片通过URL链接访问。
+                  <span className="font-medium">✨ 新功能：</span>Excel文件包含图片预览工作表，CSV文件包含图片信息表。图片通过URL链接访问。
                 </p>
               </div>
             </div>
