@@ -18,7 +18,6 @@ export function GenerationStatus({ generationId, onComplete, onError }: Generati
   // 使用全局状态管理
   const { refresh } = useGlobalPolling({
     enabled: true,
-    interval: 2000, // 2秒轮询间隔
     limit: 10
   });
   

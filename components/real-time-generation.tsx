@@ -51,7 +51,6 @@ export function RealTimeGeneration({
   // 使用全局状态管理
   const { generations, loading, refresh } = useGlobalPolling({
     enabled: autoRefresh,
-    interval: 2000, // 2秒轮询间隔
     limit: 10
   });
   

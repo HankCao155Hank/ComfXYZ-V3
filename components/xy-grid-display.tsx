@@ -53,7 +53,6 @@ export function XYGridDisplay({ batchResult }: XYGridDisplayProps) {
   // 使用全局状态管理
   const { generations: allGenerations, loading, refresh } = useGlobalPolling({
     enabled: true,
-    interval: 2000, // 2秒轮询间隔
     limit: 100
   });
   

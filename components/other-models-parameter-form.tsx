@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -305,13 +306,13 @@ export function OtherModelsParameterForm({ workflow, onSubmit, onCancel, isLoadi
                       {uploadedImages.map((image, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
                           <div className="flex items-center space-x-2 flex-1 min-w-0">
-                            <img
+                            <Image
                               src={image.url}
                               alt={image.filename}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 object-cover rounded"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/placeholder-image.png';
-                              }}
+                              unoptimized
                             />
                             <span className="text-xs truncate" title={image.filename}>
                               {image.filename}

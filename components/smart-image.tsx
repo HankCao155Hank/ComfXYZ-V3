@@ -36,6 +36,7 @@ export function SmartImage({
   // 如果图片加载失败或应该使用普通img标签
   if (!useNextImage || imageError) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}
@@ -78,6 +79,7 @@ export function SmartImage({
   } catch (error) {
     console.warn('Image组件渲染失败，回退到普通img标签:', error);
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}

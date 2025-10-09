@@ -5,7 +5,6 @@ import { useGenerationStore } from '../stores/useGenerationStore';
 import { pollingManager } from '../utils/pollingManager';
 
 interface UseGlobalPollingOptions {
-  interval?: number; // 轮询间隔，默认2秒
   enabled?: boolean; // 是否启用轮询
   limit?: number; // 获取记录数量限制
   workflowId?: string; // 特定工作流ID
@@ -13,7 +12,6 @@ interface UseGlobalPollingOptions {
 }
 
 export function useGlobalPolling({
-  interval: _interval = 2000, // 默认2秒，确保不超过1秒一次的要求
   enabled = true,
   limit = 50,
   workflowId,

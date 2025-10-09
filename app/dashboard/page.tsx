@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { WorkflowForm } from '@/components/workflow-form';
-import { WorkflowList } from '@/components/workflow-list';
 import { UnifiedWorkflowList } from '@/components/unified-workflow-list';
 import { GenerationGallery } from '@/components/generation-gallery';
 import { XYBatchGenerator } from '@/components/xy-batch-generator';
@@ -46,16 +45,6 @@ function HomeContent() {
       xValue: string;
       yValue: string;
     }>;
-  } | null>(null);
-  const [lastXYConfig, setLastXYConfig] = useState<{
-    workflowId: string;
-    xAxisNode: string;
-    xAxisInput: string;
-    xAxisValues: string[];
-    yAxisNode: string;
-    yAxisInput: string;
-    yAxisValues: string[];
-    defaultParams: Record<string, Record<string, unknown>>;
   } | null>(null);
   const [isXYGenerating, setIsXYGenerating] = useState(false);
 
@@ -229,7 +218,6 @@ function HomeContent() {
       if (result.success) {
         showToast(`XY 批量生成已启动！(${result.data.totalCombinations} 个任务)`);
         setCurrentXYBatch(result.data);
-        setLastXYConfig(batchData); // 保存配置
         setActiveTab('xy-batch');
       } else {
         showToast(result.error || '启动 XY 批量生成失败', 'error');
@@ -286,7 +274,6 @@ function HomeContent() {
             <XYBatchGenerator 
               onGenerate={handleXYGenerate}
               isGenerating={isXYGenerating}
-              initialConfig={lastXYConfig}
             />
           ) : (
             <div className="space-y-4">
@@ -301,7 +288,6 @@ function HomeContent() {
                 onRefresh={() => {
                   // 刷新逻辑已经在组件内部处理
                 }}
-                onReEdit={handleNewXYBatch}
               />
             </div>
           )}

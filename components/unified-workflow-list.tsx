@@ -8,8 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { NodeParameterForm } from '@/components/node-parameter-form';
 import { OtherModelsParameterForm } from '@/components/other-models-parameter-form';
-import { Plus, Play, Settings, Trash2, PlayCircle, Grid, Filter, Search } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Play, Settings, Trash2, PlayCircle, Grid, Search } from 'lucide-react';
 
 interface Workflow {
   id: string;
@@ -149,10 +148,6 @@ export function UnifiedWorkflowList({
     return (!nodeData.provider || nodeData.provider === 'wuwen') ? 'comfyui' : 'other-models';
   };
 
-  const getWorkflowTypeLabel = (type: 'comfyui' | 'other-models') => {
-    return type === 'comfyui' ? 'ComfyUI' : '重要模型';
-  };
-
   const getProviderLabel = (workflow: Workflow) => {
     const nodeData = workflow.nodeData as Record<string, unknown>;
     const provider = nodeData.provider as string;
@@ -220,7 +215,6 @@ export function UnifiedWorkflowList({
   }
 
   const renderWorkflowCard = (workflow: Workflow) => {
-    const workflowType = getWorkflowType(workflow);
     const provider = getProviderLabel(workflow);
     
     return (

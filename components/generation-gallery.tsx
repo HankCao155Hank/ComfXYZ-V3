@@ -11,14 +11,30 @@ import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 import { useGlobalPolling } from '@/lib/hooks/useGlobalPolling';
 // import { useGenerationStore } from '@/lib/stores/useGenerationStore'; // 暂时未使用
 
-// 使用stores中的Generation类型
-// type Generation = ReturnType<typeof useGenerationStore>['generations'][0]; // 暂时未使用
+// 定义 Generation 类型
+interface Generation {
+  id: string;
+  status: string;
+  blobUrl?: string | null;
+  errorMsg?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  actualPrompt?: string | null;
+  actualWidth?: number | null;
+  actualHeight?: number | null;
+  actualSteps?: number | null;
+  actualCfg?: number | null;
+  actualSeed?: string | null;
+  workflow?: {
+    name: string;
+  } | null;
+}
 
 interface GenerationGalleryProps {
   workflowId?: string;
   limit?: number;
   generationId?: string;
-  onComplete?: (generation: any) => void;
+  onComplete?: (generation: Generation) => void;
   autoRefresh?: boolean;
 }
 
@@ -26,7 +42,6 @@ export function GenerationGallery({ workflowId, limit = 50, generationId, onComp
   // 使用全局状态管理，完全禁用自动轮询
   const { generations, loading, refresh } = useGlobalPolling({
     enabled: false, // 完全禁用自动轮询
-    interval: 5000, // 增加间隔到5秒
     limit,
     workflowId,
     generationId
@@ -35,7 +50,7 @@ export function GenerationGallery({ workflowId, limit = 50, generationId, onComp
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
-    generation: any | null;
+    generation: Generation | null;
   }>({ isOpen: false, generation: null });
   const [deleting, setDeleting] = useState(false);
   const [selectedGenerations, setSelectedGenerations] = useState<string[]>([]);
@@ -73,12 +88,6 @@ export function GenerationGallery({ workflowId, limit = 50, generationId, onComp
     }
   }, [generationId, generations, onComplete, refresh]);
 
-  // 检查是否有运行中的任务 - 使用useMemo避免重复计算
-  const hasRunningTasks = useMemo(() => 
-    generations.some(gen => gen.status === 'running' || gen.status === 'pending'),
-    [generations]
-  );
-  
   // 只在有特定生成任务且启用自动刷新时才轮询
   useEffect(() => {
     if (autoRefresh && generationId) {
@@ -143,7 +152,7 @@ export function GenerationGallery({ workflowId, limit = 50, generationId, onComp
     return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`;
   };
 
-  const handleDeleteGeneration = async (generation: any) => {
+  const handleDeleteGeneration = async (generation: Generation) => {
     setDeleting(true);
     try {
       const response = await fetch(`/api/generations/${generation.id}`, {
